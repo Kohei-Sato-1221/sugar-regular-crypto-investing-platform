@@ -48,3 +48,28 @@ module "cognito" {
   tags = local.tags
 }
 
+# Sample Users - Created from local.sample_users array
+resource "aws_cognito_user" "sample_users" {
+  for_each = {
+    for user in local.sample_users : user.username => user
+  }
+
+  user_pool_id = module.cognito.user_pool_id
+  username     = each.value.username
+
+  attributes = {
+    email                 = each.value.email
+    email_verified        = tostring(each.value.email_verified)
+    phone_number          = each.value.phone_number
+    phone_number_verified = tostring(each.value.phone_number_verified)
+    name                  = each.value.name
+    picture               = each.value.picture
+  }
+
+  # Temporary password (user will be required to change on first login)
+  temporary_password = each.value.temporary_password
+
+  # Prevent sending welcome message
+  message_action = "SUPPRESS"
+}
+

@@ -66,6 +66,13 @@ locals {
   mfa_configuration = "OPTIONAL"
 
   # Cognito - Schema attributes
+  # Note: Standard attributes (name, picture, given_name, family_name, email, phone_number, etc.)
+  # are available by default and do not need to be added to schema_attributes.
+  # Available standard attributes include:
+  # - name: Full name of the user
+  # - picture: Profile picture URL
+  # - email, phone_number, given_name, family_name, address, birthdate, etc.
+  # Only add custom attributes here (prefixed with "custom:").
   schema_attributes = []
 
   # Cognito - User Pool Domain
@@ -92,4 +99,18 @@ locals {
     Project     = "crypto-investing-platform"
     ManagedBy   = "terraform"
   }
+
+  # Sample users to create in Cognito
+  sample_users = [
+    {
+      username              = "crypto-satoko@stockbit.click"
+      email                 = "crypto-satoko@stockbit.click"
+      phone_number          = "+818011112222"
+      name                  = "Crypto Satoko"
+      picture               = "https://assets.st-note.com/img/1712232991663-NKttzIyYUF.jpg"
+      temporary_password    = "StockBidPass123!?"
+      email_verified        = true
+      phone_number_verified = true
+    }
+  ]
 }
