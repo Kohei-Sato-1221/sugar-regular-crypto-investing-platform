@@ -1,0 +1,13 @@
+export default async function PublicPage() {
+	return (
+		<main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-500 to-purple-600 text-white">
+			<div className="container flex flex-col items-center justify-center gap-8 px-4 py-16">
+				<div className="text-center">
+					<h1 className="font-extrabold text-5xl tracking-tight sm:text-[5rem]">
+						Root Public Page
+					</h1>
+				</div>
+			</div>
+		</main>
+	);
+}
