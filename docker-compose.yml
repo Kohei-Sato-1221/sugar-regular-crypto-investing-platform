@@ -1,0 +1,23 @@
+volumes:
+  db_volume:
+
+services:
+  investing-platform-db:
+    image: postgres:16.4
+    container_name: investing-platform-db.internal
+    platform: linux/amd64
+    shm_size: 128mb
+    ports:
+      - ${COMPOSE_HOST_PORT_DB:-6543}:5432
+    environment:
+      POSTGRES_USER: ragus
+      POSTGRES_PASSWORD: investingPassWork12345
+      POSTGRES_DB: investing_platform_db
+    volumes:
+      - ./db/investing-platform-db/data:/var/lib/postgresql/data
+    networks:
+      - investing-platform-network
+
+networks:
+  investing-platform-network:
+    driver: bridge
