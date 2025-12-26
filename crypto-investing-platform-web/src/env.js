@@ -7,12 +7,18 @@ export const env = createEnv({
 	 * isn't built with invalid env vars.
 	 */
 	server: {
-		AUTH_SECRET:
+		COGNITO_USER_POOL_ID:
 			process.env.NODE_ENV === "production"
 				? z.string()
 				: z.string().optional(),
-		AUTH_DISCORD_ID: z.string(),
-		AUTH_DISCORD_SECRET: z.string(),
+		COGNITO_CLIENT_ID:
+			process.env.NODE_ENV === "production"
+				? z.string()
+				: z.string().optional(),
+		COGNITO_CLIENT_SECRET: z.string().optional(),
+		AWS_REGION: z.string().default("ap-northeast-1"),
+		AWS_ACCESS_KEY_ID: z.string().optional(),
+		AWS_SECRET_ACCESS_KEY: z.string().optional(),
 		DATABASE_URL: z.string().url(),
 		NODE_ENV: z
 			.enum(["development", "test", "production"])
@@ -33,9 +39,12 @@ export const env = createEnv({
 	 * middlewares) or client-side so we need to destruct manually.
 	 */
 	runtimeEnv: {
-		AUTH_SECRET: process.env.AUTH_SECRET,
-		AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
-		AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
+		COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID,
+		COGNITO_CLIENT_ID: process.env.COGNITO_CLIENT_ID,
+		COGNITO_CLIENT_SECRET: process.env.COGNITO_CLIENT_SECRET,
+		AWS_REGION: process.env.AWS_REGION,
+		AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+		AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
 		DATABASE_URL: process.env.DATABASE_URL,
 		NODE_ENV: process.env.NODE_ENV,
 	},

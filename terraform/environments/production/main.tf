@@ -93,6 +93,11 @@ locals {
   refresh_token_validity_unit   = "days"
   prevent_user_existence_errors = "ENABLED"
 
+  # Cognito - Explicit authentication flows
+  # ALLOW_USER_PASSWORD_AUTH: Allows direct username/password authentication (required for USER_PASSWORD_AUTH flow)
+  # ALLOW_REFRESH_TOKEN_AUTH: Allows refresh token authentication
+  explicit_auth_flows = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+
   # Common tags
   tags = {
     Environment = "production"

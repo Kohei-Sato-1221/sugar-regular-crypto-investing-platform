@@ -48,17 +48,28 @@ export default async function Home() {
 							{hello ? hello.greeting : "Loading tRPC query..."}
 						</p>
 
-						<div className="flex flex-col items-center justify-center gap-4">
-							<p className="text-center text-2xl text-white">
-								{session && <span>Logged in as {session.user?.name}</span>}
-							</p>
+					<div className="flex flex-col items-center justify-center gap-4">
+						<p className="text-center text-2xl text-white">
+							{session && <span>Logged in as {session.user?.name ?? session.user?.email}</span>}
+						</p>
+						{session ? (
+							<form action="/api/auth/signout" method="POST">
+								<button
+									type="submit"
+									className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
+								>
+									Sign out
+								</button>
+							</form>
+						) : (
 							<Link
 								className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
-								href={session ? "/api/auth/signout" : "/api/auth/signin"}
+								href="/signin"
 							>
-								{session ? "Sign out" : "Sign in"}
+								Sign in
 							</Link>
-						</div>
+						)}
+					</div>
 					</div>
 
 					{session?.user && <LatestPost />}
