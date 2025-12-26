@@ -44,6 +44,15 @@ db-reset: ## reset database and apply all migrations ## db-reset
 db-seed: ## seed database (if seed script exists) ## db-seed
 	cd ${WEBAPP_DIR} && bunx prisma db seed --schema=../${PRISMA_SCHEMA}
 
+test: ## run all tests (frontend and backend) ## test
+	cd ${WEBAPP_DIR} && bun test
+
+test-fe: ## run frontend tests only ## test-fe
+	cd ${WEBAPP_DIR} && bun test:fe
+
+test-be: ## run backend tests only ## test-be
+	cd ${WEBAPP_DIR} && bun test:be
+
 # help で表示するためコマンドの定義は以下のように記述
 # {コマンド}: ## {コマンドの説明} ## {引数使用の場合のコマンドを記述}
 help: ## コマンド一覧を表示 ## make help

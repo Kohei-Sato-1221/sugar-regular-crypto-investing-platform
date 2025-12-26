@@ -1,0 +1,224 @@
+---
+description: プロジェクト全体のルール
+globs: ["**/*"]
+alwaysApply: true
+---
+
+## 全体ルール
+1. このファイル以外のrulesを読み込んだ場合は、そのファイル名をmarkdown形式で箇条書きでlist up してね。list up したrulesを読み込んでる旨を伝えてちょ。必ず叫んでね！
+
+example
+```
+---
+- rules1.mdc を使ってるのだ‼️😍
+- rules2.mdc を使ってるのだ‼️😍
+- ...
+```
+
+2. 原則ローカル開発で使うコマンドはすべて`Makefile`で記載されている。なので、アプリをローカルで実行したり、Terraformでapplyする場合などは、すべて`make xxxx`というコマンドを利用する。
+
+example
+```
+make run # ローカルでWebアプリを起動(`bun run dev`を`crypto-investing-platform-web`で実行)
+make apply # terraform applyを実行
+```
+
+
+
+# コーディング規約
+
+## 基本方針
+
+### コード品質
+- **型安全性**: TypeScriptの型を最大限活用
+- **可読性**: コードは読みやすさを最優先
+- **保守性**: 将来の変更に耐えうる設計
+- **一貫性**: プロジェクト全体で統一されたスタイル
+
+---
+
+## ファイル構成
+
+### ディレクトリ構造
+```
+src/
+├── app/              # Next.js App Router
+│   ├── public/       # 認証不要ページ
+│   └── private/      # 認証必須ページ
+├── server/           # サーバーサイドコード
+│   ├── api/          # tRPCルーター
+│   └── auth/         # 認証ロジック
+├── trpc/             # tRPC設定
+├── const/             # 定数
+└── styles/            # スタイル
+```
+
+### ファイル命名規則
+- **コンポーネント**: PascalCase (`SignInPage.tsx`)
+- **ユーティリティ**: camelCase (`token-utils.ts`)
+- **定数**: UPPER_SNAKE_CASE (`ACCESS_TOKEN_COOKIE_KEY`)
+- **テスト**: `*.test.ts` または `*.test.tsx`
+
+---
+
+## TypeScript
+
+### 型定義
+- **明示的な型**: 可能な限り型を明示
+- **型推論**: 自明な場合は型推論を活用
+- **any禁止**: `any`は使用禁止（`unknown`を使用）
+
+### 型の例
+```typescript
+// ✅ Good
+function getUser(id: string): Promise<User | null> {
+  // ...
+}
+
+// ❌ Bad
+function getUser(id: any): any {
+  // ...
+}
+```
+
+---
+
+## 関数・変数命名
+
+### 関数名
+- **動詞で始める**: `getUser`, `saveSession`, `validateInput`
+- **明確な名前**: 何をする関数か明確に
+- **一貫性**: 同じ概念には同じ命名パターン
+
+### 変数名
+- **camelCase**: `userName`, `accessToken`
+- **boolean**: `isAuthenticated`, `hasError`
+- **配列**: 複数形 `users`, `tokens`
+
+---
+
+## エラーハンドリング
+
+### エラーの種類
+1. **ユーザーエラー**: バリデーションエラーなど
+2. **システムエラー**: 外部APIエラー、DBエラー
+3. **予期しないエラー**: 想定外のエラー
+
+### エラーハンドリングのパターン
+```typescript
+// tRPCエラー
+throw new TRPCError({
+  code: 'UNAUTHORIZED',
+  message: '認証が必要です',
+});
+
+// 通常のエラー
+if (!user) {
+  throw new Error('ユーザーが見つかりません');
+}
+```
+
+---
+
+## コメント
+
+### コメントのルール
+- **なぜ**: 何をしているかではなく、なぜそうしているか
+- **JSDoc**: 公開APIにはJSDocコメント
+- **日本語**: コメントは日本語で記述
+
+### コメントの例
+```typescript
+/**
+ * ユーザーを認証し、セッションを保存する
+ * @param username - ユーザー名（メールアドレス）
+ * @param password - パスワード
+ * @returns 認証結果（トークンまたはチャレンジ）
+ */
+export async function signIn(
+  username: string,
+  password: string,
+): Promise<AuthResult> {
+  // ...
+}
+```
+
+---
+
+## インポート
+
+### インポート順序
+1. 外部ライブラリ
+2. 内部モジュール（`~/`で始まる）
+3. 相対パス
+
+### インポートの例
+```typescript
+import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
+
+import { createTRPCRouter } from '~/server/api/trpc';
+import { signIn } from '~/server/auth/cognito';
+
+import { localHelper } from './helpers';
+```
+
+---
+
+## React/Next.js
+
+### コンポーネント
+- **関数コンポーネント**: クラスコンポーネントは使用しない
+- **Server Components**: デフォルトでServer Component
+- **Client Components**: `"use client"`が必要な場合のみ
+
+### フック
+- **カスタムフック**: ロジックの再利用
+- **フックのルール**: Reactのルールに従う
+
+---
+
+## 認証関連
+
+### Cookie管理
+- **HttpOnly**: セキュリティのため必須
+- **Secure**: 本番環境では必須
+- **SameSite**: `lax`をデフォルト
+
+### セッション管理
+- **トークンの有効期限**: 適切な期限を設定
+- **リフレッシュトークン**: 長期セッション用
+
+---
+
+## 環境変数
+
+### 環境変数の管理
+- **env.js**: 環境変数のバリデーション
+- **.env.example**: 必要な環境変数を記載
+- **型安全**: 環境変数は型定義
+
+---
+
+## Git
+
+### コミットメッセージ
+- **日本語**: コミットメッセージは日本語
+- **プレフィックス**: `feat:`, `fix:`, `refactor:` など
+- **明確に**: 何を変更したか明確に
+
+### 例
+```
+feat: Cognitoでのログイン機能の実装
+fix: Cookieがレスポンスに含まれない問題を修正
+refactor: 認証ロジックをtRPCに移行
+```
+
+---
+
+## 参考資料
+
+- [TypeScript公式ドキュメント](https://www.typescriptlang.org/)
+- [Next.js公式ドキュメント](https://nextjs.org/docs)
+- [React公式ドキュメント](https://react.dev/)
+
