@@ -84,7 +84,52 @@ function createMockCognitoClient() {
 		send: async (command: any) => {
 			// InitiateAuthCommandの処理
 			if (command instanceof InitiateAuthCommand) {
-				const { AuthParameters } = command.input;
+				const { AuthFlow, AuthParameters } = command.input;
+
+				// REFRESH_TOKEN_AUTHフローの処理
+				if (AuthFlow === "REFRESH_TOKEN_AUTH") {
+					const refreshToken = AuthParameters?.REFRESH_TOKEN;
+
+					if (!refreshToken) {
+						throw {
+							name: "InvalidParameterException",
+							code: "InvalidParameterException",
+							message: "REFRESH_TOKEN is required",
+						};
+					}
+
+					// RefreshTokenからユーザーIDを抽出（形式: refresh-token-{user.sub}）
+					const userIdMatch = refreshToken.match(/^refresh-token-(.+)$/);
+					if (!userIdMatch) {
+						throw {
+							name: "NotAuthorizedException",
+							code: "NotAuthorizedException",
+							message: "リフレッシュトークンが無効です",
+						};
+					}
+
+					const userId = userIdMatch[1];
+					const user = mockUsers.find((u) => u.sub === userId);
+
+					if (!user) {
+						throw {
+							name: "NotAuthorizedException",
+							code: "NotAuthorizedException",
+							message: "リフレッシュトークンが無効です",
+						};
+					}
+
+					// 新しいトークンを生成
+					return {
+						AuthenticationResult: {
+							AccessToken: generateToken(user),
+							IdToken: generateToken(user),
+							// RefreshTokenは返さない（既存のRefreshTokenを継続使用）
+						},
+					};
+				}
+
+				// USER_PASSWORD_AUTHフローの処理
 				const username = AuthParameters?.USERNAME;
 				const password = AuthParameters?.PASSWORD;
 
@@ -147,6 +192,50 @@ function createMockCognitoClient() {
 						AccessToken: generateToken(user),
 						IdToken: generateToken(user),
 						RefreshToken: `refresh-token-${user.sub}`,
+					},
+				};
+			}
+
+			// REFRESH_TOKEN_AUTHフローの処理
+			if (command instanceof InitiateAuthCommand && command.input.AuthFlow === "REFRESH_TOKEN_AUTH") {
+				const { AuthParameters } = command.input;
+				const refreshToken = AuthParameters?.REFRESH_TOKEN;
+
+				if (!refreshToken) {
+					throw {
+						name: "InvalidParameterException",
+						code: "InvalidParameterException",
+						message: "REFRESH_TOKEN is required",
+					};
+				}
+
+				// RefreshTokenからユーザーIDを抽出（形式: refresh-token-{user.sub}）
+				const userIdMatch = refreshToken.match(/^refresh-token-(.+)$/);
+				if (!userIdMatch) {
+					throw {
+						name: "NotAuthorizedException",
+						code: "NotAuthorizedException",
+						message: "リフレッシュトークンが無効です",
+					};
+				}
+
+				const userId = userIdMatch[1];
+				const user = mockUsers.find((u) => u.sub === userId);
+
+				if (!user) {
+					throw {
+						name: "NotAuthorizedException",
+						code: "NotAuthorizedException",
+						message: "リフレッシュトークンが無効です",
+					};
+				}
+
+				// 新しいトークンを生成
+				return {
+					AuthenticationResult: {
+						AccessToken: generateToken(user),
+						IdToken: generateToken(user),
+						// RefreshTokenは返さない（既存のRefreshTokenを継続使用）
 					},
 				};
 			}
@@ -418,26 +507,191 @@ export async function saveSession(tokens: {
 }
 
 /**
+ * RefreshTokenを使って新しいAccessToken/IdTokenを取得
+ */
+export async function refreshTokens(refreshToken: string) {
+	// テスト環境の場合は環境変数のチェックをスキップ
+	if (env.NODE_ENV !== "test") {
+		if (!env.COGNITO_USER_POOL_ID || !env.COGNITO_CLIENT_ID) {
+			throw new Error("Cognito設定が完了していません。環境変数を確認してください。");
+		}
+	}
+
+	const client = createCognitoClient();
+
+	try {
+		const authParams: Record<string, string> = {
+			REFRESH_TOKEN: refreshToken,
+		};
+
+		// Confidential Clientの場合、SECRET_HASHを追加
+		// REFRESH_TOKEN_AUTHでは、USERNAMEが必要（IdTokenから取得するか、RefreshTokenから推測）
+		if (env.COGNITO_CLIENT_SECRET && env.COGNITO_CLIENT_ID) {
+			// RefreshTokenからユーザー名を取得する必要がある
+			// 実際の実装では、IdTokenから取得するか、別の方法で取得する必要がある
+			// ここでは、CookieからIdTokenを取得してユーザー名を抽出する
+			const cookieStore = await cookies();
+			const idToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
+			
+			if (idToken) {
+				const decodedToken = await decodeIdToken(idToken);
+				if (decodedToken) {
+					const username = decodedToken["cognito:username"] ?? decodedToken.email ?? "";
+					if (username) {
+						authParams.SECRET_HASH = generateSecretHash(
+							username,
+							env.COGNITO_CLIENT_ID,
+							env.COGNITO_CLIENT_SECRET,
+						);
+					}
+				}
+			}
+		}
+
+		// テスト環境ではCOGNITO_CLIENT_IDがundefinedでもモッククライアントを使用するため、空文字列を使用
+		const clientId = env.COGNITO_CLIENT_ID || (env.NODE_ENV === "test" ? "test-client-id" : undefined);
+		if (!clientId && env.NODE_ENV !== "test") {
+			throw new Error("Cognito設定が完了していません。環境変数を確認してください。");
+		}
+
+		const params = {
+			ClientId: clientId,
+			AuthFlow: "REFRESH_TOKEN_AUTH" as const,
+			AuthParameters: authParams,
+		};
+
+		const command = new InitiateAuthCommand(params);
+		const response = await client.send(command);
+
+		if (!response.AuthenticationResult) {
+			console.error("Token refresh failed: No AuthenticationResult in response", {
+				fullResponse: JSON.stringify(response, null, 2),
+			});
+			throw new Error("トークンのリフレッシュに失敗しました");
+		}
+
+		if (!response.AuthenticationResult.AccessToken || !response.AuthenticationResult.IdToken) {
+			throw new Error("トークンのリフレッシュに失敗しました");
+		}
+
+		return {
+			accessToken: response.AuthenticationResult.AccessToken,
+			idToken: response.AuthenticationResult.IdToken,
+			// RefreshTokenは返さない（既存のRefreshTokenを継続使用）
+		};
+	} catch (error) {
+		console.error("Token refresh error details:", {
+			error: error,
+			errorName: error instanceof Error ? error.name : "Unknown",
+			errorMessage: error instanceof Error ? error.message : String(error),
+		});
+
+		const errorObj = error instanceof Error ? error : (error as object);
+		const errorName = "name" in errorObj ? (errorObj as { name?: string }).name : undefined;
+		const errorCode = "code" in errorObj ? (errorObj as { code?: string }).code : undefined;
+
+		if (errorName === "NotAuthorizedException" || errorCode === "NotAuthorizedException") {
+			throw new Error("リフレッシュトークンが無効です。再度ログインしてください。");
+		}
+
+		throw error;
+	}
+}
+
+/**
  * セッションからユーザー情報を取得
+ * IdTokenが期限切れの場合は、RefreshTokenを使って自動リフレッシュを試行
  */
 export async function getSession() {
 	const cookieStore = await cookies();
 	const idToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
+	const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE_KEY)?.value;
 
+	// IdTokenがない場合
 	if (!idToken) {
-		return null;
+		// RefreshTokenもない場合はnullを返す
+		if (!refreshToken) {
+			return null;
+		}
+
+		// RefreshTokenがある場合は、リフレッシュを試行
+		try {
+			const tokens = await refreshTokens(refreshToken);
+			await saveSession({
+				accessToken: tokens.accessToken,
+				idToken: tokens.idToken,
+				refreshToken, // 既存のRefreshTokenを保持
+			});
+
+			// 新しいIdTokenをデコード
+			const user = await decodeIdToken(tokens.idToken);
+			if (!user) {
+				return null;
+			}
+
+			return {
+				user: {
+					id: user.sub,
+					email: user.email ?? null,
+					name: user.name ?? user["cognito:username"] ?? null,
+					image: user.picture ?? null,
+				},
+			};
+		} catch (error) {
+			// リフレッシュに失敗した場合はセッションをクリア
+			console.error("Failed to refresh tokens:", error);
+			await clearSession();
+			return null;
+		}
 	}
 
+	// IdTokenをデコード
 	const user = await decodeIdToken(idToken);
 	if (!user) {
 		return null;
 	}
 
-	// トークンの有効期限をチェック
-	if (user.exp && user.exp * 1000 < Date.now()) {
-		// トークンが期限切れの場合はセッションをクリア
-		await clearSession();
-		return null;
+	// トークンの有効期限をチェック（5分前を期限切れとみなす）
+	const expirationTime = user.exp ? user.exp * 1000 : 0;
+	const now = Date.now();
+	const bufferTime = 5 * 60 * 1000; // 5分
+
+	if (expirationTime < now + bufferTime) {
+		// トークンが期限切れまたは期限切れ間近の場合、RefreshTokenでリフレッシュを試行
+		if (refreshToken) {
+			try {
+				const tokens = await refreshTokens(refreshToken);
+				await saveSession({
+					accessToken: tokens.accessToken,
+					idToken: tokens.idToken,
+					refreshToken, // 既存のRefreshTokenを保持
+				});
+
+				// 新しいIdTokenをデコード
+				const refreshedUser = await decodeIdToken(tokens.idToken);
+				if (!refreshedUser) {
+					return null;
+				}
+
+				return {
+					user: {
+						id: refreshedUser.sub,
+						email: refreshedUser.email ?? null,
+						name: refreshedUser.name ?? refreshedUser["cognito:username"] ?? null,
+						image: refreshedUser.picture ?? null,
+					},
+				};
+			} catch (error) {
+				// リフレッシュに失敗した場合はセッションをクリア
+				console.error("Failed to refresh tokens:", error);
+				await clearSession();
+				return null;
+			}
+		} else {
+			// RefreshTokenがない場合はセッションをクリア
+			await clearSession();
+			return null;
+		}
 	}
 
 	return {
