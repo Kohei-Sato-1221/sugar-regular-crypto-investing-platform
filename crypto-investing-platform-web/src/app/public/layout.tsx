@@ -1,29 +1,12 @@
-import "~/styles/globals.css";
-
-import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-
-import { TRPCReactProvider } from "~/trpc/react";
-
-export const metadata: Metadata = {
-	title: "Root Public Page",
-	description: "Root Public Page",
-	icons: [{ rel: "icon", url: "/favicon.ico" }],
-};
-
-const geist = Geist({
-	subsets: ["latin"],
-	variable: "--font-geist-sans",
-});
-
+/**
+ * Publicレイアウト
+ * 認証不要のページ用
+ * 
+ * 注意: Next.jsのAppRouterでは、<html>と<body>タグは
+ * ルートレイアウト（src/app/layout.tsx）でのみ使用できます。
+ */
 export default function PublicLayout({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
-	return (
-		<html className={`${geist.variable}`} lang="en">
-			<body>
-				<TRPCReactProvider>{children}</TRPCReactProvider>
-			</body>
-		</html>
-	);
+	return <>{children}</>;
 }

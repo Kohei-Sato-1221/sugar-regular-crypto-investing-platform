@@ -11,12 +11,19 @@ export const env = createEnv({
 			process.env.NODE_ENV === "production"
 				? z.string()
 				: z.string().optional(),
-		AUTH_DISCORD_ID: z.string(),
-		AUTH_DISCORD_SECRET: z.string(),
+		AUTH_DISCORD_ID: z.string().optional(),
+		AUTH_DISCORD_SECRET: z.string().optional(),
 		DATABASE_URL: z.string().url(),
 		NODE_ENV: z
 			.enum(["development", "test", "production"])
 			.default("development"),
+		// Cognito設定
+		COGNITO_USER_POOL_ID: z.string().optional(),
+		COGNITO_CLIENT_ID: z.string().optional(),
+		COGNITO_CLIENT_SECRET: z.string().optional(),
+		AWS_REGION: z.string().optional().default("ap-northeast-1"),
+		AWS_ACCESS_KEY_ID: z.string().optional(),
+		AWS_SECRET_ACCESS_KEY: z.string().optional(),
 	},
 
 	/**
@@ -38,6 +45,12 @@ export const env = createEnv({
 		AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
 		DATABASE_URL: process.env.DATABASE_URL,
 		NODE_ENV: process.env.NODE_ENV,
+		COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID,
+		COGNITO_CLIENT_ID: process.env.COGNITO_CLIENT_ID,
+		COGNITO_CLIENT_SECRET: process.env.COGNITO_CLIENT_SECRET,
+		AWS_REGION: process.env.AWS_REGION,
+		AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+		AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

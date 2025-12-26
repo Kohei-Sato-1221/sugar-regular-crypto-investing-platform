@@ -1,0 +1,16 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "./crypto-investing-platform-web/generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// 注意: NextAuthはJWTストラテジーを使用しているため、
+// データベーステーブルは不要です。
+// セッション情報はJWTトークンに保存されます。

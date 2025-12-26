@@ -1,0 +1,1 @@
+export const STOCKBIT_SESSION_COOKIE = "StockBitSessionCookie-19871221"
