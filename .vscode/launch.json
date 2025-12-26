@@ -1,0 +1,40 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+
+		{
+			"name": "Next.js: debug full stack",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "dev"],
+			"cwd": "${workspaceFolder}/crypto-investing-platform-web",
+			"console": "integratedTerminal",
+			"skipFiles": ["<node_internals>/**"],
+			"env": {
+				"NODE_OPTIONS": "--inspect"
+			},
+			"serverReadyAction": {
+				"pattern": "- Local:.+(https?://.+)",
+				"uriFormat": "%s",
+				"action": "debugWithChrome"
+			}
+		}
+	],
+	"compounds": [
+		{
+			"name": "Next.js: debug full stack + client",
+			"configurations": [
+				"Next.js: debug full stack",
+				"Next.js: debug client-side"
+			],
+			"presentation": {
+				"hidden": false,
+				"group": "",
+				"order": 1
+			},
+			"stopAll": true
+		}
+	]
+}
+

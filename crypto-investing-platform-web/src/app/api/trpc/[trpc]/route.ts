@@ -1,4 +1,5 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { env } from "~/env";
@@ -15,8 +16,8 @@ const createContext = async (req: NextRequest) => {
 	});
 };
 
-const handler = (req: NextRequest) =>
-	fetchRequestHandler({
+const handler = async (req: NextRequest) => {
+	const response = await fetchRequestHandler({
 		endpoint: "/api/trpc",
 		req,
 		router: appRouter,
@@ -30,5 +31,21 @@ const handler = (req: NextRequest) =>
 					}
 				: undefined,
 	});
+
+	// レスポンスボディを取得
+	const responseData = await response.text();
+	
+	// NextResponseでラップして、Next.jsのcookies()で設定されたCookieを含める
+	// Next.jsのcookies()は内部的にレスポンスヘッダーを管理しているが、
+	// tRPCのfetchRequestHandlerが新しいResponseオブジェクトを作成するため、
+	// NextResponseを使うことで、Next.jsが自動的にCookieを追加する
+	const nextResponse = new NextResponse(responseData, {
+		status: response.status,
+		statusText: response.statusText,
+		headers: response.headers,
+	});
+
+	return nextResponse;
+};
 
 export { handler as GET, handler as POST };

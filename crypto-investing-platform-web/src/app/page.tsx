@@ -48,10 +48,10 @@ export default async function Home() {
 							{hello ? hello.greeting : "Loading tRPC query..."}
 						</p>
 
-					<div className="flex flex-col items-center justify-center gap-4">
-						<p className="text-center text-2xl text-white">
+						<div className="flex flex-col items-center justify-center gap-4">
+							<p className="text-center text-2xl text-white">
 							{session && <span>Logged in as {session.user?.name ?? session.user?.email}</span>}
-						</p>
+							</p>
 						{session ? (
 							<form action="/api/auth/signout" method="POST">
 								<button
@@ -69,7 +69,7 @@ export default async function Home() {
 								Sign in
 							</Link>
 						)}
-					</div>
+						</div>
 					</div>
 
 					{session?.user && <LatestPost />}

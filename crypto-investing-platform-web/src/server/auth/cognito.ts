@@ -75,26 +75,7 @@ export async function signIn(username: string, password: string) {
 		};
 
 		const command = new InitiateAuthCommand(params);
-		
-		// リクエストパラメータをログ出力（デバッグ用）
-		console.log("Cognito authentication request:", {
-			ClientId: env.COGNITO_CLIENT_ID,
-			AuthFlow: "USER_PASSWORD_AUTH",
-			hasSecretHash: !!env.COGNITO_CLIENT_SECRET,
-			username: username,
-		});
-		
 		const response = await client.send(command);
-
-		// レスポンスの詳細をログ出力
-		console.log("Cognito authentication response:", {
-			hasAuthenticationResult: !!response.AuthenticationResult,
-			hasChallengeName: !!response.ChallengeName,
-			challengeName: response.ChallengeName,
-			challengeParameters: response.ChallengeParameters,
-			session: response.Session,
-			responseKeys: Object.keys(response),
-		});
 
 		if (!response.AuthenticationResult) {
 			// NEW_PASSWORD_REQUIREDチャレンジの場合は、セッション情報を返す

@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { api } from "~/trpc/react";
+
 export default function SignInPage() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -12,12 +14,16 @@ export default function SignInPage() {
 		rawCallbackUrl.includes("/signin") || rawCallbackUrl.startsWith("/signin")
 			? "/private"
 			: rawCallbackUrl;
-	const [isPending, startTransition] = useTransition();
+	
 	const [error, setError] = useState<string | null>(null);
+	const [isPending, startTransition] = useTransition();
 	const [formData, setFormData] = useState({
 		username: "",
 		password: "",
 	});
+
+	const signInMutation = api.auth.signIn.useMutation();
+	const utils = api.useUtils();
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -25,40 +31,17 @@ export default function SignInPage() {
 
 		startTransition(async () => {
 			try {
-				const response = await fetch("/api/auth/signin", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						username: formData.username,
-						password: formData.password,
-					}),
+				const result = await signInMutation.mutateAsync({
+					username: formData.username,
+					password: formData.password,
 				});
-
-				const data = await response.json();
-
-				console.log("Sign in response:", {
-					ok: response.ok,
-					status: response.status,
-					data: data,
-				});
-
-				if (!response.ok) {
-					setError(data.error || "ログインに失敗しました。");
-					return;
-				}
 
 				// パスワード変更が必要な場合
-				if (data.requiresPasswordChange && data.challenge) {
-					console.log("Redirecting to change password page:", {
-						session: data.challenge.session,
-						username: data.challenge.username,
-					});
+				if (result.requiresPasswordChange && result.challenge?.session) {
 					const changePasswordUrl = new URL("/public/change-password", window.location.origin);
-					changePasswordUrl.searchParams.set("session", data.challenge.session);
-					if (data.challenge.username) {
-						changePasswordUrl.searchParams.set("username", data.challenge.username);
+					changePasswordUrl.searchParams.set("session", result.challenge.session);
+					if (result.challenge.username) {
+						changePasswordUrl.searchParams.set("username", result.challenge.username);
 					}
 					changePasswordUrl.searchParams.set("callbackUrl", callbackUrl);
 					router.push(changePasswordUrl.toString());
@@ -66,12 +49,11 @@ export default function SignInPage() {
 				}
 
 				// ログイン成功時はcallbackUrlにリダイレクト
-				console.log("Login successful, redirecting to:", callbackUrl);
 				router.push(callbackUrl);
 				router.refresh();
 			} catch (err) {
-				setError("予期しないエラーが発生しました。");
-				console.error("Sign in error:", err);
+				const error = err as { message?: string };
+				setError(error.message || "ログインに失敗しました。");
 			}
 		});
 	};
@@ -115,7 +97,7 @@ export default function SignInPage() {
 								}
 								className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
 								placeholder="email@example.com"
-								disabled={isPending}
+								disabled={signInMutation.isPending || isPending}
 							/>
 						</div>
 
@@ -137,7 +119,7 @@ export default function SignInPage() {
 									setFormData({ ...formData, password: e.target.value })
 								}
 								className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-								disabled={isPending}
+								disabled={signInMutation.isPending || isPending}
 							/>
 						</div>
 					</div>
@@ -145,10 +127,10 @@ export default function SignInPage() {
 					<div>
 						<button
 							type="submit"
-							disabled={isPending}
+							disabled={signInMutation.isPending}
 							className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 						>
-							{isPending ? "ログイン中..." : "ログイン"}
+							{signInMutation.isPending ? "ログイン中..." : "ログイン"}
 						</button>
 					</div>
 				</form>

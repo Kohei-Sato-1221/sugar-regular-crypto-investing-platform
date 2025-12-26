@@ -139,3 +139,4 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
 - 各コールバック関数（`authorized`, `jwt`, `session`）は**リクエストごと**に実行される
 - `authConfig`の変更は、アプリケーションの再起動が必要
 
+

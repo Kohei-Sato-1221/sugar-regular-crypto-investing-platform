@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+
+import { api } from "~/trpc/react";
 
 export default function ChangePasswordPage() {
 	const router = useRouter();
@@ -10,11 +12,21 @@ export default function ChangePasswordPage() {
 	const username = searchParams.get("username");
 	const callbackUrl = searchParams.get("callbackUrl") ?? "/private";
 
-	const [isPending, startTransition] = useTransition();
 	const [error, setError] = useState<string | null>(null);
 	const [formData, setFormData] = useState({
 		newPassword: "",
 		confirmPassword: "",
+	});
+
+	const changePasswordMutation = api.auth.changePassword.useMutation({
+		onSuccess: () => {
+			// パスワード変更成功時はcallbackUrlにリダイレクト
+			router.push(callbackUrl);
+			router.refresh();
+		},
+		onError: (error) => {
+			setError(error.message || "パスワード変更に失敗しました。");
+		},
 	});
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -38,34 +50,10 @@ export default function ChangePasswordPage() {
 			return;
 		}
 
-		startTransition(async () => {
-			try {
-				const response = await fetch("/api/auth/change-password", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						session: session,
-						newPassword: formData.newPassword,
-						username: username,
-					}),
-				});
-
-				const data = await response.json();
-
-				if (!response.ok) {
-					setError(data.error || "パスワード変更に失敗しました。");
-					return;
-				}
-
-				// パスワード変更成功時はcallbackUrlにリダイレクト
-				router.push(callbackUrl);
-				router.refresh();
-			} catch (err) {
-				setError("予期しないエラーが発生しました。");
-				console.error("Change password error:", err);
-			}
+		changePasswordMutation.mutate({
+			session: session,
+			newPassword: formData.newPassword,
+			username: username ?? undefined,
 		});
 	};
 
@@ -133,7 +121,7 @@ export default function ChangePasswordPage() {
 								}
 								className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
 								placeholder="8文字以上"
-								disabled={isPending}
+								disabled={changePasswordMutation.isPending}
 								minLength={8}
 							/>
 						</div>
@@ -157,7 +145,7 @@ export default function ChangePasswordPage() {
 								}
 								className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
 								placeholder="同じパスワードを入力"
-								disabled={isPending}
+								disabled={changePasswordMutation.isPending}
 								minLength={8}
 							/>
 						</div>
@@ -174,10 +162,10 @@ export default function ChangePasswordPage() {
 					<div>
 						<button
 							type="submit"
-							disabled={isPending}
+							disabled={changePasswordMutation.isPending}
 							className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 						>
-							{isPending ? "パスワード変更中..." : "パスワードを変更"}
+							{changePasswordMutation.isPending ? "パスワード変更中..." : "パスワードを変更"}
 						</button>
 					</div>
 				</form>
