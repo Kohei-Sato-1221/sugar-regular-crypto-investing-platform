@@ -44,23 +44,22 @@ async function verifySession(request: NextRequest): Promise<boolean> {
 export async function middleware(req: NextRequest) {
 	const { pathname } = req.nextUrl;
 
-	// /privateルートを保護
+	// /privateルートを保護（認証が必要）
 	if (pathname.startsWith("/private")) {
 		const isAuthenticated = await verifySession(req);
 		
 		if (!isAuthenticated) {
 			// 認証されていない場合はサインインページにリダイレクト
-			const signInUrl = new URL("/signin", req.url);
+			const signInUrl = new URL("/public/signin", req.url);
 			signInUrl.searchParams.set("callbackUrl", pathname);
 			return NextResponse.redirect(signInUrl);
 		}
 	}
 
-	// /api/authルート、/signinページ、/change-passwordページは常に許可
+	// /publicルートと/api/authルートは常に許可（認証不要）
 	if (
-		pathname.startsWith("/api/auth") ||
-		pathname.startsWith("/signin") ||
-		pathname.startsWith("/change-password")
+		pathname.startsWith("/public") ||
+		pathname.startsWith("/api/auth")
 	) {
 		return NextResponse.next();
 	}
@@ -73,13 +72,11 @@ export const config = {
 		/*
 		 * Match all request paths except:
 		 * - /api/auth (認証API routes)
-		 * - /signin (ログインページ)
-		 * - /change-password (パスワード変更ページ)
+		 * - /public (認証不要のページ)
 		 * - _next/static (static files)
 		 * - _next/image (image optimization files)
 		 * - files with extensions (e.g., .png, .jpg, etc.)
-		 * - public folder
 		 */
-		"/((?!api/auth|signin|change-password|_next/static|_next/image|.*\\..*|public).*)",
+		"/((?!api/auth|public|_next/static|_next/image|.*\\..*).*)",
 	],
 };

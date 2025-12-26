@@ -55,7 +55,7 @@ export default function SignInPage() {
 						session: data.challenge.session,
 						username: data.challenge.username,
 					});
-					const changePasswordUrl = new URL("/change-password", window.location.origin);
+					const changePasswordUrl = new URL("/public/change-password", window.location.origin);
 					changePasswordUrl.searchParams.set("session", data.challenge.session);
 					if (data.challenge.username) {
 						changePasswordUrl.searchParams.set("username", data.challenge.username);
@@ -156,3 +156,4 @@ export default function SignInPage() {
 		</div>
 	);
 }
+

@@ -24,8 +24,17 @@ export async function POST(request: NextRequest) {
 			username,
 		);
 
+		// トークンの存在確認
+		if (!tokens.accessToken || !tokens.idToken) {
+			throw new Error("パスワード変更に失敗しました");
+		}
+
 		// セッションに保存
-		const sessionData = await saveSession(tokens);
+		const sessionData = await saveSession({
+			accessToken: tokens.accessToken,
+			idToken: tokens.idToken,
+			refreshToken: tokens.refreshToken,
+		});
 
 		return NextResponse.json({ success: true, user: sessionData.user });
 	} catch (error) {
