@@ -12,6 +12,10 @@ export default defineConfig({
 		env: {
 			NODE_ENV: "test",
 		},
+		fileParallelism: false,
+		sequence: {
+			shuffle: false,
+		},
 	},
 	resolve: {
 		alias: {

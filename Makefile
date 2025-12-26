@@ -45,7 +45,7 @@ db-seed: ## seed database (if seed script exists) ## db-seed
 	cd ${WEBAPP_DIR} && bunx prisma db seed --schema=../${PRISMA_SCHEMA}
 
 test: ## run all tests (frontend and backend) ## test
-	cd ${WEBAPP_DIR} && bun test
+	cd ${WEBAPP_DIR} && bun test:be && bun test:fe
 
 test-fe: ## run frontend tests only ## test-fe
 	cd ${WEBAPP_DIR} && bun test:fe

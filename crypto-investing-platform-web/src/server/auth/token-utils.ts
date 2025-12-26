@@ -1,6 +1,6 @@
 /**
  * Edge Runtime対応のJWTデコード関数
- * Bufferを使わずにatobを使用
+ * Node.js環境ではBufferを使用、Edge Runtimeではatobを使用
  */
 export function decodeIdToken(idToken: string) {
 	try {
@@ -12,15 +12,25 @@ export function decodeIdToken(idToken: string) {
 		const base64Url = parts[1];
 		const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
 		
-		// Edge Runtime対応: atobを使用
-		const jsonPayload = decodeURIComponent(
-			atob(base64)
-				.split("")
-				.map((c) => {
-					return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-				})
-				.join(""),
-		);
+		// Node.js環境ではBufferを使用、それ以外（Edge Runtime）ではatobを使用
+		let jsonPayload: string;
+		// Node.js環境ではBufferを使用（テスト環境でも確実に動作するように）
+		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+		if (typeof Buffer !== "undefined" && typeof Buffer.from === "function") {
+			jsonPayload = Buffer.from(base64, "base64").toString("utf8");
+		} else if (typeof atob !== "undefined") {
+			// Edge Runtime対応: atobを使用
+			jsonPayload = decodeURIComponent(
+				atob(base64)
+					.split("")
+					.map((c) => {
+						return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+					})
+					.join(""),
+			);
+		} else {
+			return null;
+		}
 
 		return JSON.parse(jsonPayload) as {
 			sub: string;
@@ -31,7 +41,8 @@ export function decodeIdToken(idToken: string) {
 			exp?: number;
 			[key: string]: unknown;
 		};
-	} catch {
+	} catch (error) {
+		// エラー時はnullを返す（エラーログは出さない）
 		return null;
 	}
 }
@@ -39,7 +50,7 @@ export function decodeIdToken(idToken: string) {
 
 /**
  * Edge Runtime対応のAccessTokenデコード関数
- * Bufferを使わずにatobを使用
+ * Node.js環境ではBufferを使用、Edge Runtimeではatobを使用
  */
 export function decodeAccessToken(accessToken: string) {
 	try {
@@ -51,15 +62,25 @@ export function decodeAccessToken(accessToken: string) {
 		const base64Url = parts[1];
 		const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
 		
-		// Edge Runtime対応: atobを使用
-		const jsonPayload = decodeURIComponent(
-			atob(base64)
-				.split("")
-				.map((c) => {
-					return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-				})
-				.join(""),
-		);
+		// Node.js環境ではBufferを使用、それ以外（Edge Runtime）ではatobを使用
+		let jsonPayload: string;
+		// Node.js環境ではBufferを使用（テスト環境でも確実に動作するように）
+		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+		if (typeof Buffer !== "undefined" && typeof Buffer.from === "function") {
+			jsonPayload = Buffer.from(base64, "base64").toString("utf8");
+		} else if (typeof atob !== "undefined") {
+			// Edge Runtime対応: atobを使用
+			jsonPayload = decodeURIComponent(
+				atob(base64)
+					.split("")
+					.map((c) => {
+						return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+					})
+					.join(""),
+			);
+		} else {
+			return null;
+		}
 
 		return JSON.parse(jsonPayload) as {
 			sub: string;

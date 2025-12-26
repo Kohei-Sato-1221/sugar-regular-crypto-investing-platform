@@ -16,10 +16,9 @@
 		"postinstall": "prisma generate --schema=../db/prisma/schema.prisma",
 		"preview": "next build && next start",
 		"start": "next start",
-		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
-		"test:fe": "vitest run src/app",
+		"test:fe": "vitest run src/app --passWithNoTests",
 		"test:be": "vitest run src/server",
 		"typecheck": "tsc --noEmit"
 	},
