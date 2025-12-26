@@ -175,6 +175,12 @@ variable "prevent_user_existence_errors" {
   default     = "ENABLED"
 }
 
+variable "explicit_auth_flows" {
+  description = "List of explicit authentication flows (ALLOW_USER_PASSWORD_AUTH, ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH, etc.)"
+  type        = list(string)
+  default     = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

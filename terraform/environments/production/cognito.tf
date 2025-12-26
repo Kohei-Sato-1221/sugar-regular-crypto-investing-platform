@@ -45,6 +45,9 @@ module "cognito" {
   refresh_token_validity_unit   = local.refresh_token_validity_unit
   prevent_user_existence_errors = local.prevent_user_existence_errors
 
+  # Explicit authentication flows
+  explicit_auth_flows = local.explicit_auth_flows
+
   tags = local.tags
 }
 

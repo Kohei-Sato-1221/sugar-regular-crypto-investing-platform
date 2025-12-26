@@ -100,6 +100,11 @@ resource "aws_cognito_user_pool_client" "web" {
   logout_urls                          = var.logout_urls
   supported_identity_providers         = var.supported_identity_providers
 
+  # Explicit authentication flows
+  # ALLOW_USER_PASSWORD_AUTH: Allows direct username/password authentication
+  # ALLOW_REFRESH_TOKEN_AUTH: Allows refresh token authentication
+  explicit_auth_flows = var.explicit_auth_flows
+
   token_validity_units {
     access_token  = var.access_token_validity_unit
     id_token      = var.id_token_validity_unit
