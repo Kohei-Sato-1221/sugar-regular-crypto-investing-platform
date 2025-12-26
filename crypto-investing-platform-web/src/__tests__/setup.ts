@@ -3,7 +3,8 @@ import { vi } from "vitest";
 
 // テスト環境変数を設定
 process.env.NODE_ENV = "test";
-process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://test:test@localhost:5432/test";
+// 実際のDB接続情報を使用（docker-compose.ymlの設定に合わせる）
+process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://ragus:investingPassWork12345@localhost:6543/investing_platform_db?schema=public";
 
 // Next.js Router のモック
 vi.mock("next/navigation", () => ({
