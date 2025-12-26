@@ -19,14 +19,43 @@
 				"uriFormat": "%s",
 				"action": "debugWithChrome"
 			}
+		},
+		{
+			"name": "Run Tests",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["test"],
+			"cwd": "${workspaceFolder}/crypto-investing-platform-web",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
+		},
+		{
+			"name": "Run Backend Tests",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["test:be"],
+			"cwd": "${workspaceFolder}/crypto-investing-platform-web",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
+		},
+		{
+			"name": "Run Frontend Tests",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["test:fe"],
+			"cwd": "${workspaceFolder}/crypto-investing-platform-web",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
 		}
 	],
 	"compounds": [
 		{
 			"name": "Next.js: debug full stack + client",
 			"configurations": [
-				"Next.js: debug full stack",
-				"Next.js: debug client-side"
+				"Next.js: debug full stack"
 			],
 			"presentation": {
 				"hidden": false,

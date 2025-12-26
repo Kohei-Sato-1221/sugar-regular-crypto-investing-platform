@@ -12,9 +12,211 @@ import { decodeIdToken } from "./token-utils";
 import { ID_TOKEN_COOKIE_KEY, ACCESS_TOKEN_COOKIE_KEY, REFRESH_TOKEN_COOKIE_KEY } from "~/const/auth";
 
 /**
+ * テスト用ユーザーの型定義
+ */
+type MockUser = {
+	username: string;
+	email: string;
+	password: string;
+	confirmed: boolean;
+	requiresPasswordChange: boolean;
+	sub: string;
+	name?: string;
+};
+
+/**
+ * テスト用ユーザーデータ
+ */
+const mockUsers: MockUser[] = [
+	{
+		username: "test@example.com",
+		email: "test@example.com",
+		password: "password123",
+		confirmed: true,
+		requiresPasswordChange: false,
+		sub: "user-123",
+		name: "Test User",
+	},
+	{
+		username: "unconfirmed@example.com",
+		email: "unconfirmed@example.com",
+		password: "password123",
+		confirmed: false,
+		requiresPasswordChange: false,
+		sub: "user-456",
+		name: "Unconfirmed User",
+	},
+	{
+		username: "newpassword@example.com",
+		email: "newpassword@example.com",
+		password: "oldpassword",
+		confirmed: true,
+		requiresPasswordChange: true,
+		sub: "user-789",
+		name: "New Password User",
+	},
+];
+
+/**
+ * テスト用のモックCognitoクライアントを作成
+ */
+function createMockCognitoClient() {
+	// セッション管理用のMap
+	const sessions = new Map<string, { username: string; challengeName?: string }>();
+
+	// トークンを生成するヘルパー関数（JWT形式）
+	const generateToken = (user: MockUser): string => {
+		const header = { alg: "HS256", typ: "JWT" };
+		const payload = {
+			sub: user.sub,
+			email: user.email,
+			"cognito:username": user.username,
+			name: user.name,
+			exp: Math.floor(Date.now() / 1000) + 3600, // 1時間後
+		};
+		// JWT形式: header.payload.signature
+		const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
+		const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
+		return `${encodedHeader}.${encodedPayload}.mock-signature`;
+	};
+
+	return {
+		send: async (command: any) => {
+			// InitiateAuthCommandの処理
+			if (command instanceof InitiateAuthCommand) {
+				const { AuthParameters } = command.input;
+				const username = AuthParameters?.USERNAME;
+				const password = AuthParameters?.PASSWORD;
+
+				if (!username || !password) {
+					throw {
+						name: "InvalidParameterException",
+						code: "InvalidParameterException",
+						message: "USERNAME and PASSWORD are required",
+					};
+				}
+
+				// ユーザーを検索
+				const user = mockUsers.find(
+					(u) => u.username === username || u.email === username,
+				);
+
+				if (!user) {
+					throw {
+						name: "UserNotFoundException",
+						code: "UserNotFoundException",
+						message: "ユーザーが見つかりません",
+					};
+				}
+
+				if (!user.confirmed) {
+					throw {
+						name: "UserNotConfirmedException",
+						code: "UserNotConfirmedException",
+						message: "アカウントが確認されていません",
+					};
+				}
+
+				if (user.password !== password) {
+					throw {
+						name: "NotAuthorizedException",
+						code: "NotAuthorizedException",
+						message: "ユーザー名またはパスワードが正しくありません",
+					};
+				}
+
+				// NEW_PASSWORD_REQUIREDチャレンジの場合
+				if (user.requiresPasswordChange) {
+					const sessionId = `session-${Date.now()}-${Math.random()}`;
+					sessions.set(sessionId, { username: user.username, challengeName: "NEW_PASSWORD_REQUIRED" });
+					return {
+						ChallengeName: "NEW_PASSWORD_REQUIRED",
+						Session: sessionId,
+						ChallengeParameters: {
+							USERNAME: user.username,
+							userAttributes: JSON.stringify({
+								email: user.email,
+							}),
+						},
+					};
+				}
+
+				// 正常な認証
+				return {
+					AuthenticationResult: {
+						AccessToken: generateToken(user),
+						IdToken: generateToken(user),
+						RefreshToken: `refresh-token-${user.sub}`,
+					},
+				};
+			}
+
+			// RespondToAuthChallengeCommandの処理
+			if (command instanceof RespondToAuthChallengeCommand) {
+				const { Session, ChallengeResponses } = command.input;
+				const newPassword = ChallengeResponses?.NEW_PASSWORD;
+				const username = ChallengeResponses?.USERNAME;
+
+				if (!Session || !newPassword) {
+					throw {
+						name: "InvalidParameterException",
+						code: "InvalidParameterException",
+						message: "Session and NEW_PASSWORD are required",
+					};
+				}
+
+				const session = sessions.get(Session);
+				if (!session) {
+					throw {
+						name: "NotAuthorizedException",
+						code: "NotAuthorizedException",
+						message: "セッションが無効です",
+					};
+				}
+
+				const user = mockUsers.find(
+					(u) => u.username === (username ?? session.username),
+				);
+
+				if (!user) {
+					throw {
+						name: "UserNotFoundException",
+						code: "UserNotFoundException",
+						message: "ユーザーが見つかりません",
+					};
+				}
+
+				// パスワードを更新
+				user.password = newPassword;
+				user.requiresPasswordChange = false;
+
+				// セッションを削除
+				sessions.delete(Session);
+
+				return {
+					AuthenticationResult: {
+						AccessToken: generateToken(user),
+						IdToken: generateToken(user),
+						RefreshToken: `refresh-token-${user.sub}`,
+					},
+				};
+			}
+
+			throw new Error(`Unsupported command: ${command.constructor.name}`);
+		},
+	};
+}
+
+/**
  * Cognito認証クライアントを作成
+ * テスト環境の場合はモッククライアントを返す
  */
 function createCognitoClient() {
+	// テスト環境の場合はモッククライアントを返す
+	if (env.NODE_ENV === "test") {
+		return createMockCognitoClient() as unknown as CognitoIdentityProviderClient;
+	}
+
 	return new CognitoIdentityProviderClient({
 		region: env.AWS_REGION,
 		...(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY
@@ -46,7 +248,8 @@ function generateSecretHash(
  * ユーザー名とパスワードでログイン
  */
 export async function signIn(username: string, password: string) {
-	if (!env.COGNITO_USER_POOL_ID || !env.COGNITO_CLIENT_ID) {
+	// テスト環境の場合は環境変数のチェックをスキップ
+	if (env.NODE_ENV !== "test" && (!env.COGNITO_USER_POOL_ID || !env.COGNITO_CLIENT_ID)) {
 		throw new Error("Cognito設定が完了していません。環境変数を確認してください。");
 	}
 
@@ -60,7 +263,7 @@ export async function signIn(username: string, password: string) {
 		};
 
 		// Confidential Clientの場合、SECRET_HASHを追加
-		if (env.COGNITO_CLIENT_SECRET) {
+		if (env.COGNITO_CLIENT_SECRET && env.COGNITO_CLIENT_ID) {
 			authParams.SECRET_HASH = generateSecretHash(
 				username,
 				env.COGNITO_CLIENT_ID,
@@ -136,27 +339,24 @@ export async function signIn(username: string, password: string) {
 		});
 		
 		// より詳細なエラーメッセージを提供
-		if (error instanceof Error) {
-			// AWS SDKのエラーを処理
-			if ("$metadata" in error || "name" in error) {
-				const errorName = (error as { name?: string }).name;
-				const errorCode = (error as { code?: string }).code;
-				
-				if (errorName === "InvalidParameterException" || errorCode === "InvalidParameterException") {
-					throw new Error(
-						"認証フローが有効になっていません。Cognito App Clientの設定で「ALLOW_USER_PASSWORD_AUTH」を有効にしてください。",
-					);
-				}
-				if (errorName === "NotAuthorizedException" || errorCode === "NotAuthorizedException") {
-					throw new Error("ユーザー名またはパスワードが正しくありません。");
-				}
-				if (errorName === "UserNotFoundException" || errorCode === "UserNotFoundException") {
-					throw new Error("ユーザーが見つかりません。");
-				}
-				if (errorName === "UserNotConfirmedException" || errorCode === "UserNotConfirmedException") {
-					throw new Error("アカウントが確認されていません。");
-				}
-			}
+		// エラーオブジェクトの形式をチェック（Errorインスタンスまたはオブジェクト）
+		const errorObj = error instanceof Error ? error : (error as object);
+		const errorName = "name" in errorObj ? (errorObj as { name?: string }).name : undefined;
+		const errorCode = "code" in errorObj ? (errorObj as { code?: string }).code : undefined;
+		
+		if (errorName === "InvalidParameterException" || errorCode === "InvalidParameterException") {
+			throw new Error(
+				"認証フローが有効になっていません。Cognito App Clientの設定で「ALLOW_USER_PASSWORD_AUTH」を有効にしてください。",
+			);
+		}
+		if (errorName === "NotAuthorizedException" || errorCode === "NotAuthorizedException") {
+			throw new Error("ユーザー名またはパスワードが正しくありません。");
+		}
+		if (errorName === "UserNotFoundException" || errorCode === "UserNotFoundException") {
+			throw new Error("ユーザーが見つかりません。");
+		}
+		if (errorName === "UserNotConfirmedException" || errorCode === "UserNotConfirmedException") {
+			throw new Error("アカウントが確認されていません。");
 		}
 		
 		throw error;
@@ -289,7 +489,7 @@ export async function respondToNewPasswordChallenge(
 
 		const params = {
 			ClientId: env.COGNITO_CLIENT_ID,
-			ChallengeName: "NEW_PASSWORD_REQUIRED",
+			ChallengeName: "NEW_PASSWORD_REQUIRED" as const,
 			Session: session,
 			ChallengeResponses: challengeParams,
 		};
