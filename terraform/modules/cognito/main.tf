@@ -87,11 +87,12 @@ resource "aws_cognito_user_pool_domain" "main" {
 }
 
 # Cognito User Pool Client (Web App)
+# ToB application uses confidential client with client secret for better security
 resource "aws_cognito_user_pool_client" "web" {
   name         = "${var.name_prefix}-web-client"
   user_pool_id = aws_cognito_user_pool.main.id
 
-  generate_secret                      = false # Web apps should not have client secrets
+  generate_secret                      = true # ToB apps should use confidential clients with secrets
   allowed_oauth_flows                  = var.allowed_oauth_flows
   allowed_oauth_scopes                 = var.allowed_oauth_scopes
   allowed_oauth_flows_user_pool_client = true

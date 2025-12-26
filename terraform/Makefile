@@ -61,6 +61,26 @@ fmt: check-args ## format terraform files ## make fmt e=production
 	@echo "Terraform directory: $(TERRAFORM_DIR)"
 	cd $(TERRAFORM_DIR) && terraform fmt -recursive
 
+output: check-args ## show terraform outputs ## make output e=production
+	@echo "Showing Terraform outputs for environment: $(ENV)..."
+	@echo "Terraform directory: $(TERRAFORM_DIR)"
+	cd $(TERRAFORM_DIR) && terraform output
+
+output-json: check-args ## show terraform outputs as JSON ## make output-json e=production
+	@echo "Showing Terraform outputs (JSON) for environment: $(ENV)..."
+	@echo "Terraform directory: $(TERRAFORM_DIR)"
+	cd $(TERRAFORM_DIR) && terraform output -json
+
+output-raw: check-args ## show specific terraform output value (usage: make output-raw e=production NAME=output_name) ## make output-raw e=production NAME=cognito_user_pool_client_id
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME is required. Usage: make output-raw e=<env> NAME=<output_name>"; \
+		echo "Example: make output-raw e=production NAME=cognito_user_pool_client_id"; \
+		exit 1; \
+	fi
+	@echo "Getting Terraform output '$(NAME)' for environment: $(ENV)..."
+	@echo "Terraform directory: $(TERRAFORM_DIR)"
+	cd $(TERRAFORM_DIR) && terraform output -raw $(NAME)
+
 # Format all terraform files
 fmt-all: ## format all terraform files ## make fmt-all
 	@echo "Formatting all Terraform files..."

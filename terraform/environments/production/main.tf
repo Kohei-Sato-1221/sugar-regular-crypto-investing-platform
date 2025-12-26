@@ -37,10 +37,10 @@ locals {
   root_domain = "stockbit.click"
   app_domain  = "app.${local.root_domain}"
 
-  # OAuth URLs
+  # OAuth URLs (NextAuth default callback path: /api/auth/callback/[provider])
   callback_urls = concat(
-    ["http://localhost:3000/auth/callback"],
-    ["https://${local.app_domain}/auth/callback"]
+    ["http://localhost:3000/api/auth/callback/cognito"],
+    ["https://${local.app_domain}/api/auth/callback/cognito"]
   )
   logout_urls = concat(
     ["http://localhost:3000"],
