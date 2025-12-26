@@ -16,7 +16,60 @@ const createContext = async (req: NextRequest) => {
 	});
 };
 
+/**
+ * CSRF対策: Origin/Refererヘッダーをチェック
+ * middleware.tsでもチェックしているが、二重チェックでより安全に
+ */
+function validateCSRF(request: NextRequest): boolean {
+	// GETリクエストはCSRFチェックをスキップ
+	if (request.method === "GET" || request.method === "HEAD") {
+		return true;
+	}
+
+	const origin = request.headers.get("origin");
+	const referer = request.headers.get("referer");
+	const host = request.headers.get("host");
+
+	if (!host) {
+		return false;
+	}
+
+	// 同一オリジンリクエストの場合は許可
+	if (origin) {
+		try {
+			const originUrl = new URL(origin);
+			if (originUrl.host === host) {
+				return true;
+			}
+		} catch {
+			// 無効なOriginヘッダー
+			return false;
+		}
+	}
+
+	// Refererヘッダーをチェック
+	if (referer) {
+		try {
+			const refererUrl = new URL(referer);
+			if (refererUrl.host === host) {
+				return true;
+			}
+		} catch {
+			// 無効なRefererヘッダー
+			return false;
+		}
+	}
+
+	// OriginもRefererもない場合は拒否
+	return false;
+}
+
 const handler = async (req: NextRequest) => {
+	// CSRFチェック（middleware.tsでもチェックしているが、二重チェック）
+	if (!validateCSRF(req)) {
+		return new NextResponse("CSRF validation failed", { status: 403 });
+	}
+
 	const response = await fetchRequestHandler({
 		endpoint: "/api/trpc",
 		req,

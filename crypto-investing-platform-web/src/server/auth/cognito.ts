@@ -470,29 +470,29 @@ export async function saveSession(tokens: {
 	}
 
 	// トークンをCookieに保存（HttpOnly、Secure、SameSiteを設定）
-	cookieStore.set(ACCESS_TOKEN_COOKIE_KEY, tokens.accessToken, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "lax",
-		maxAge: 60 * 60, // 1時間
+	// SameSite="strict"でCSRF攻撃をより強力に防ぐ
+	// ただし、外部サイトからのリンクでログインする場合は"lax"が必要
+	const cookieOptions = {
+		httpOnly: true, // XSS攻撃を防ぐ（JavaScriptからアクセス不可）
+		secure: process.env.NODE_ENV === "production", // HTTPS必須（本番環境）
+		sameSite: "strict" as const, // CSRF攻撃を防ぐ（同一サイトからのリクエストのみ許可）
 		path: "/",
+	};
+
+	cookieStore.set(ACCESS_TOKEN_COOKIE_KEY, tokens.accessToken, {
+		...cookieOptions,
+		maxAge: 60 * 60, // 1時間
 	});
 
 	cookieStore.set(ID_TOKEN_COOKIE_KEY, tokens.idToken, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "lax",
+		...cookieOptions,
 		maxAge: 60 * 60, // 1時間
-		path: "/",
 	});
 
 	if (tokens.refreshToken) {
 		cookieStore.set(REFRESH_TOKEN_COOKIE_KEY, tokens.refreshToken, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "lax",
+			...cookieOptions,
 			maxAge: 60 * 60 * 24 * 30, // 30日
-			path: "/",
 		});
 	}
 
