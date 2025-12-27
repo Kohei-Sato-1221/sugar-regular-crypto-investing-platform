@@ -53,6 +53,27 @@ test-fe: ## run frontend tests only ## test-fe
 test-be: ## run backend tests only ## test-be
 	cd ${WEBAPP_DIR} && bunx vitest run src/server
 
+lib-version: ## install mise and setup tool versions (for new team members) ## lib-version
+	@echo "🔧 Setting up development environment with mise..."
+	@if command -v mise > /dev/null 2>&1; then \
+		echo "✅ mise is already installed"; \
+	else \
+		echo "📦 Installing mise..."; \
+		curl -sSf https://mise.run | sh; \
+		echo ""; \
+		echo "⚠️  Please add the following to your shell config (~/.zshrc or ~/.bashrc):"; \
+		echo '    eval "$$(~/.local/bin/mise activate zsh)"'; \
+		echo ""; \
+		echo "Then run: source ~/.zshrc && make lib-version"; \
+		exit 1; \
+	fi
+	@echo "📦 Installing tool versions from mise.toml..."
+	mise install
+	@echo ""
+	@echo "✅ Development environment setup complete!"
+	@echo "📋 Installed versions:"
+	@mise current
+
 # help で表示するためコマンドの定義は以下のように記述
 # {コマンド}: ## {コマンドの説明} ## {引数使用の場合のコマンドを記述}
 help: ## コマンド一覧を表示 ## make help
