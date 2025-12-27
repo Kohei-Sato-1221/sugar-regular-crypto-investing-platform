@@ -43,7 +43,7 @@ vi.mock("~/env", () => ({
 
 // Next.js cookiesをモック
 vi.mock("next/headers", () => ({
-	cookies: vi.fn(() => ({
+	cookies: vi.fn(async () => ({
 		set: vi.fn(),
 		get: vi.fn((key: string) => {
 			// IdTokenを返す（SECRET_HASH計算用）

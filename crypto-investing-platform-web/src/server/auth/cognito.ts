@@ -183,7 +183,7 @@ export async function saveSession(tokens: {
 	const cookieStore = await cookies();
 	
 	// ID Tokenからユーザー情報を取得
-	const user = await decodeIdToken(tokens.idToken);
+	const user = decodeIdToken(tokens.idToken);
 	if (!user) {
 		throw new Error("トークンのデコードに失敗しました");
 	}
@@ -256,7 +256,7 @@ export async function refreshTokens(refreshToken: string) {
 			if (encryptedIdToken) {
 				const idToken = decryptToken(encryptedIdToken);
 				if (idToken) {
-					const decodedToken = await decodeIdToken(idToken);
+					const decodedToken = decodeIdToken(idToken);
 					if (decodedToken) {
 						const username = decodedToken["cognito:username"] ?? decodedToken.email ?? "";
 						if (username) {
@@ -351,7 +351,7 @@ export async function getSession() {
 			});
 
 			// 新しいIdTokenをデコード
-			const user = await decodeIdToken(tokens.idToken);
+			const user = decodeIdToken(tokens.idToken);
 			if (!user) {
 				return null;
 			}
@@ -373,7 +373,7 @@ export async function getSession() {
 	}
 
 	// IdTokenをデコード
-	const user = await decodeIdToken(idToken);
+	const user = decodeIdToken(idToken);
 	if (!user) {
 		return null;
 	}
@@ -395,7 +395,7 @@ export async function getSession() {
 				});
 
 				// 新しいIdTokenをデコード
-				const refreshedUser = await decodeIdToken(tokens.idToken);
+				const refreshedUser = decodeIdToken(tokens.idToken);
 				if (!refreshedUser) {
 					return null;
 				}
@@ -459,7 +459,24 @@ export async function respondToNewPasswordChallenge(
 		if (env.COGNITO_CLIENT_SECRET) {
 			// USERNAMEが必要（Secret Hashの計算に必要）
 			if (!username) {
-				throw new Error("ユーザー名が必要です");
+				// セッションからユーザー名を取得を試行
+				const cookieStore = await cookies();
+				const encryptedIdToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
+				if (encryptedIdToken) {
+					const idToken = decryptToken(encryptedIdToken);
+					if (idToken) {
+						const decodedToken = decodeIdToken(idToken);
+						if (decodedToken) {
+							username = decodedToken["cognito:username"] ?? decodedToken.email ?? undefined;
+							if (username) {
+								challengeParams.USERNAME = username;
+							}
+						}
+					}
+				}
+				if (!username) {
+					throw new Error("ユーザー名が必要です");
+				}
 			}
 			challengeParams.SECRET_HASH = generateSecretHash(
 				username,

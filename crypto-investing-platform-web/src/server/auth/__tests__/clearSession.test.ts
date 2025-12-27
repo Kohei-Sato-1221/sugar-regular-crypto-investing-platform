@@ -1,26 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { clearSession } from "../cognito";
 import {
 	ID_TOKEN_COOKIE_KEY,
 	ACCESS_TOKEN_COOKIE_KEY,
 	REFRESH_TOKEN_COOKIE_KEY,
 } from "~/const/auth";
 
-// Next.js cookiesをモック
-const mockDelete = vi.fn();
-const mockCookieStore = {
-	set: vi.fn(),
-	get: vi.fn(),
-	delete: mockDelete,
-};
+// vi.hoisted()を使用してモック関数を先に定義
+const { mockDelete, mockCookieStore } = vi.hoisted(() => {
+	const mockDelete = vi.fn();
+	const mockCookieStore = {
+		set: vi.fn(),
+		get: vi.fn(),
+		delete: mockDelete,
+	};
+	return { mockDelete, mockCookieStore };
+});
 
 vi.mock("next/headers", () => ({
-	cookies: vi.fn(() => mockCookieStore),
+	cookies: vi.fn(async () => mockCookieStore),
 }));
+
+// clearSessionをインポート（モック設定後）
+import { clearSession } from "../cognito";
 
 describe("clearSession", () => {
 	beforeEach(() => {
+		vi.restoreAllMocks();
 		vi.clearAllMocks();
 		mockDelete.mockClear();
 	});
@@ -36,4 +42,3 @@ describe("clearSession", () => {
 		expect(mockDelete).toHaveBeenCalledWith(REFRESH_TOKEN_COOKIE_KEY);
 	});
 });
-

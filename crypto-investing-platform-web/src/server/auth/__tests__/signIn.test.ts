@@ -4,7 +4,11 @@ import { signIn } from "../cognito";
 
 // Next.js cookiesをモック
 vi.mock("next/headers", () => ({
-	cookies: vi.fn(),
+	cookies: vi.fn(async () => ({
+		set: vi.fn(),
+		get: vi.fn(),
+		delete: vi.fn(),
+	})),
 }));
 
 // 環境変数をモック

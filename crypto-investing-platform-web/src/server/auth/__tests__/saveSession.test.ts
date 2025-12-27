@@ -1,38 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { saveSession } from "../cognito";
 import {
 	ID_TOKEN_COOKIE_KEY,
 	ACCESS_TOKEN_COOKIE_KEY,
 	REFRESH_TOKEN_COOKIE_KEY,
 } from "~/const/auth";
 
-// Next.js cookiesをモック
-const mockSet = vi.fn();
-const mockCookieStore = {
-	set: mockSet,
-	get: vi.fn(),
-	delete: vi.fn(),
-};
+// vi.hoisted()を使用してモック関数を先に定義
+const { mockSet, mockCookieStore, mockDecodeIdToken, mockEncryptToken } = vi.hoisted(() => {
+	const mockSet = vi.fn();
+	const mockCookieStore = {
+		set: mockSet,
+		get: vi.fn(),
+		delete: vi.fn(),
+	};
+	const mockDecodeIdToken = vi.fn();
+	const mockEncryptToken = vi.fn((token: string) => `encrypted-${token}`);
+	return { mockSet, mockCookieStore, mockDecodeIdToken, mockEncryptToken };
+});
 
 vi.mock("next/headers", () => ({
-	cookies: vi.fn(() => mockCookieStore),
+	cookies: vi.fn(async () => mockCookieStore),
 }));
 
-// token-utilsをモック
-const mockDecodeIdToken = vi.fn();
 vi.mock("../token-utils", () => ({
-	decodeIdToken: (token: string) => mockDecodeIdToken(token),
+	decodeIdToken: mockDecodeIdToken,
 }));
 
-// crypto-utilsをモック
-const mockEncryptToken = vi.fn((token: string) => `encrypted-${token}`);
 vi.mock("../crypto-utils", () => ({
-	encryptToken: (token: string) => mockEncryptToken(token),
+	encryptToken: mockEncryptToken,
 	decryptToken: vi.fn(),
 }));
 
-// env.jsをモック
 vi.mock("~/env", () => ({
 	env: {
 		AUTH_SECRET: "test-auth-secret-key-for-testing-purposes-only",
@@ -40,12 +39,18 @@ vi.mock("~/env", () => ({
 	},
 }));
 
+// saveSessionをインポート（モック設定後）
+import { saveSession } from "../cognito";
+
 describe("saveSession", () => {
 	beforeEach(() => {
+		vi.restoreAllMocks();
 		vi.clearAllMocks();
 		mockSet.mockClear();
 		mockDecodeIdToken.mockClear();
-		// デフォルトのモック動作を設定
+		mockEncryptToken.mockClear();
+		// デフォルトのモック動作を再設定
+		mockEncryptToken.mockImplementation((token: string) => `encrypted-${token}`);
 		mockDecodeIdToken.mockImplementation((token: string) => {
 			// テスト用のトークンをデコード
 			if (token.includes("user-123")) {
@@ -168,4 +173,3 @@ describe("saveSession", () => {
 		});
 	});
 });
-

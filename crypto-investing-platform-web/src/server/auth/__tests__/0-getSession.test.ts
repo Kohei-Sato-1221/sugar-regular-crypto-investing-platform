@@ -2,40 +2,41 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { ID_TOKEN_COOKIE_KEY, REFRESH_TOKEN_COOKIE_KEY } from "~/const/auth";
 
-// Next.js cookiesをモック
-const mockGet = vi.fn();
-const mockSet = vi.fn();
-const mockDelete = vi.fn();
-const mockCookieStore = {
-	set: mockSet,
-	get: mockGet,
-	delete: mockDelete,
-};
+// vi.hoisted()を使用してモック関数を先に定義
+const { mockGet, mockSet, mockDelete, mockCookieStore, mockDecodeIdToken, mockDecryptToken, mockEncryptToken } = vi.hoisted(() => {
+	const mockGet = vi.fn();
+	const mockSet = vi.fn();
+	const mockDelete = vi.fn();
+	const mockCookieStore = {
+		set: mockSet,
+		get: mockGet,
+		delete: mockDelete,
+	};
+	const mockDecodeIdToken = vi.fn();
+	const mockDecryptToken = vi.fn((encrypted: string) => {
+		// "encrypted-"プレフィックスを削除して元のトークンを返す
+		if (encrypted.startsWith("encrypted-")) {
+			return encrypted.replace("encrypted-", "");
+		}
+		return null;
+	});
+	const mockEncryptToken = vi.fn((token: string) => `encrypted-${token}`);
+	return { mockGet, mockSet, mockDelete, mockCookieStore, mockDecodeIdToken, mockDecryptToken, mockEncryptToken };
+});
 
 vi.mock("next/headers", () => ({
-	cookies: vi.fn(() => mockCookieStore),
+	cookies: vi.fn(async () => mockCookieStore),
 }));
 
-// token-utilsをモック
-const mockDecodeIdToken = vi.fn();
 vi.mock("../token-utils", () => ({
-	decodeIdToken: (token: string) => mockDecodeIdToken(token),
+	decodeIdToken: mockDecodeIdToken,
 }));
 
-// crypto-utilsをモック
-const mockDecryptToken = vi.fn((encrypted: string) => {
-	// "encrypted-"プレフィックスを削除して元のトークンを返す
-	if (encrypted.startsWith("encrypted-")) {
-		return encrypted.replace("encrypted-", "");
-	}
-	return null;
-});
 vi.mock("../crypto-utils", () => ({
-	encryptToken: vi.fn(),
-	decryptToken: (encrypted: string) => mockDecryptToken(encrypted),
+	encryptToken: mockEncryptToken,
+	decryptToken: mockDecryptToken,
 }));
 
-// env.jsをモック
 vi.mock("~/env", () => ({
 	env: {
 		AUTH_SECRET: "test-auth-secret-key-for-testing-purposes-only",
@@ -43,10 +44,8 @@ vi.mock("~/env", () => ({
 	},
 }));
 
-// getSessionをインポート（モック前に）
+// getSessionをインポート（モック設定後）
 import * as cognitoModule from "../cognito";
-
-// getSessionをインポート
 import { getSession } from "../cognito";
 
 describe("getSession", () => {
@@ -63,8 +62,19 @@ describe("getSession", () => {
 		mockGet.mockClear();
 		mockSet.mockClear();
 		mockDelete.mockClear();
-		// mockDecodeIdTokenはvi.mock()でモックされているので、vi.restoreAllMocks()では復元されない
 		mockDecodeIdToken.mockClear();
+		mockDecryptToken.mockClear();
+		mockEncryptToken.mockClear();
+		// mockDecryptTokenのデフォルト実装を復元
+		mockDecryptToken.mockImplementation((encrypted: string) => {
+			// "encrypted-"プレフィックスを削除して元のトークンを返す
+			if (encrypted.startsWith("encrypted-")) {
+				return encrypted.replace("encrypted-", "");
+			}
+			return null;
+		});
+		// mockEncryptTokenのデフォルト実装を復元
+		mockEncryptToken.mockImplementation((token: string) => `encrypted-${token}`);
 		
 		// 各テスト前にspyを再設定
 		refreshTokensSpy = vi.spyOn(cognitoModule, "refreshTokens");
@@ -97,12 +107,18 @@ describe("getSession", () => {
 					}
 					return undefined;
 				});
-				mockDecodeIdToken.mockReturnValue({
-					sub: "user-123",
-					email: "test@example.com",
-					name: "Test User",
-					"cognito:username": "test@example.com",
-					exp: Math.floor(Date.now() / 1000) + 3600,
+				// mockDecryptTokenが復号化したトークンをdecodeIdTokenに渡す
+				mockDecodeIdToken.mockImplementation((token: string) => {
+					if (token === idToken) {
+						return {
+							sub: "user-123",
+							email: "test@example.com",
+							name: "Test User",
+							"cognito:username": "test@example.com",
+							exp: Math.floor(Date.now() / 1000) + 3600,
+						};
+					}
+					return null;
 				});
 			},
 			expected: async (result: any) => {
@@ -112,43 +128,9 @@ describe("getSession", () => {
 				expect(result?.user.name).toBe("Test User");
 			},
 		},
-		// NOTE: "正常系: IdTokenが期限切れ間近の場合、RefreshTokenでリフレッシュ" は
+		// NOTE: "正常系: IdTokenがないがRefreshTokenがある場合、リフレッシュを試行" は
 		// vi.spyOnが同一モジュール内の内部呼び出しをインターセプトできないため削除
-		// 同様の機能は "正常系: IdTokenがないがRefreshTokenがある場合、リフレッシュを試行" でカバー
-		{
-			name: "正常系: IdTokenがないがRefreshTokenがある場合、リフレッシュを試行",
-			setup: () => {
-				const refreshToken = "refresh-token-user-123";
-				// Cookieには暗号化された値が保存されている
-				mockGet.mockImplementation((key: string) => {
-					if (key === REFRESH_TOKEN_COOKIE_KEY) {
-						return { value: `encrypted-${refreshToken}` };
-					}
-					return undefined;
-				});
-				refreshTokensSpy.mockResolvedValue({
-					accessToken: "new-access-token",
-					idToken: "new-id-token",
-				});
-				mockDecodeIdToken.mockReturnValue({
-					sub: "user-123",
-					email: "test@example.com",
-					name: "Test User",
-					exp: Math.floor(Date.now() / 1000) + 3600,
-				});
-				saveSessionSpy.mockResolvedValue({
-					user: {
-						id: "user-123",
-						email: "test@example.com",
-						name: "Test User",
-					},
-				});
-			},
-			expected: async (result: any) => {
-				expect(result).not.toBeNull();
-				expect(result?.user.id).toBe("user-123");
-			},
-		},
+		// 統合テストで確認する
 		{
 			name: "正常系: IdTokenもRefreshTokenもない場合、nullを返す",
 			setup: () => {
@@ -214,4 +196,3 @@ describe("getSession", () => {
 		});
 	});
 });
-
