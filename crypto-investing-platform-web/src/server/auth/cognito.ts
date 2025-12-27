@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 
 import { env } from "~/env";
 import { decodeIdToken } from "./token-utils";
+import { encryptToken, decryptToken } from "./crypto-utils";
 
 import { ID_TOKEN_COOKIE_KEY, ACCESS_TOKEN_COOKIE_KEY, REFRESH_TOKEN_COOKIE_KEY } from "~/const/auth";
 
@@ -197,18 +198,19 @@ export async function saveSession(tokens: {
 		path: "/",
 	};
 
-	cookieStore.set(ACCESS_TOKEN_COOKIE_KEY, tokens.accessToken, {
+	// トークンを暗号化してCookieに保存
+	cookieStore.set(ACCESS_TOKEN_COOKIE_KEY, encryptToken(tokens.accessToken), {
 		...cookieOptions,
 		maxAge: 60 * 60, // 1時間
 	});
 
-	cookieStore.set(ID_TOKEN_COOKIE_KEY, tokens.idToken, {
+	cookieStore.set(ID_TOKEN_COOKIE_KEY, encryptToken(tokens.idToken), {
 		...cookieOptions,
 		maxAge: 60 * 60, // 1時間
 	});
 
 	if (tokens.refreshToken) {
-		cookieStore.set(REFRESH_TOKEN_COOKIE_KEY, tokens.refreshToken, {
+		cookieStore.set(REFRESH_TOKEN_COOKIE_KEY, encryptToken(tokens.refreshToken), {
 			...cookieOptions,
 			maxAge: 60 * 60 * 24 * 30, // 30日
 		});
@@ -249,18 +251,21 @@ export async function refreshTokens(refreshToken: string) {
 			// 実際の実装では、IdTokenから取得するか、別の方法で取得する必要がある
 			// ここでは、CookieからIdTokenを取得してユーザー名を抽出する
 			const cookieStore = await cookies();
-			const idToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
+			const encryptedIdToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
 			
-			if (idToken) {
-				const decodedToken = await decodeIdToken(idToken);
-				if (decodedToken) {
-					const username = decodedToken["cognito:username"] ?? decodedToken.email ?? "";
-					if (username) {
-						authParams.SECRET_HASH = generateSecretHash(
-							username,
-							env.COGNITO_CLIENT_ID,
-							env.COGNITO_CLIENT_SECRET,
-						);
+			if (encryptedIdToken) {
+				const idToken = decryptToken(encryptedIdToken);
+				if (idToken) {
+					const decodedToken = await decodeIdToken(idToken);
+					if (decodedToken) {
+						const username = decodedToken["cognito:username"] ?? decodedToken.email ?? "";
+						if (username) {
+							authParams.SECRET_HASH = generateSecretHash(
+								username,
+								env.COGNITO_CLIENT_ID,
+								env.COGNITO_CLIENT_SECRET,
+							);
+						}
 					}
 				}
 			}
@@ -322,8 +327,12 @@ export async function refreshTokens(refreshToken: string) {
  */
 export async function getSession() {
 	const cookieStore = await cookies();
-	const idToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
-	const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE_KEY)?.value;
+	const encryptedIdToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
+	const encryptedRefreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE_KEY)?.value;
+
+	// 暗号化されたトークンを復号化
+	const idToken = encryptedIdToken ? decryptToken(encryptedIdToken) : null;
+	const refreshToken = encryptedRefreshToken ? decryptToken(encryptedRefreshToken) : null;
 
 	// IdTokenがない場合
 	if (!idToken) {

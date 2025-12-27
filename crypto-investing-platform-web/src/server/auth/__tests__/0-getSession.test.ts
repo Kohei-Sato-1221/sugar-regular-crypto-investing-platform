@@ -22,6 +22,27 @@ vi.mock("../token-utils", () => ({
 	decodeIdToken: (token: string) => mockDecodeIdToken(token),
 }));
 
+// crypto-utilsをモック
+const mockDecryptToken = vi.fn((encrypted: string) => {
+	// "encrypted-"プレフィックスを削除して元のトークンを返す
+	if (encrypted.startsWith("encrypted-")) {
+		return encrypted.replace("encrypted-", "");
+	}
+	return null;
+});
+vi.mock("../crypto-utils", () => ({
+	encryptToken: vi.fn(),
+	decryptToken: (encrypted: string) => mockDecryptToken(encrypted),
+}));
+
+// env.jsをモック
+vi.mock("~/env", () => ({
+	env: {
+		AUTH_SECRET: "test-auth-secret-key-for-testing-purposes-only",
+		NODE_ENV: "test",
+	},
+}));
+
 // getSessionをインポート（モック前に）
 import * as cognitoModule from "../cognito";
 
@@ -69,9 +90,10 @@ describe("getSession", () => {
 					"cognito:username": "test@example.com",
 					exp: Math.floor(Date.now() / 1000) + 3600, // 1時間後
 				});
+				// Cookieには暗号化された値が保存されている
 				mockGet.mockImplementation((key: string) => {
 					if (key === ID_TOKEN_COOKIE_KEY) {
-						return { value: idToken };
+						return { value: `encrypted-${idToken}` };
 					}
 					return undefined;
 				});
@@ -97,9 +119,10 @@ describe("getSession", () => {
 			name: "正常系: IdTokenがないがRefreshTokenがある場合、リフレッシュを試行",
 			setup: () => {
 				const refreshToken = "refresh-token-user-123";
+				// Cookieには暗号化された値が保存されている
 				mockGet.mockImplementation((key: string) => {
 					if (key === REFRESH_TOKEN_COOKIE_KEY) {
-						return { value: refreshToken };
+						return { value: `encrypted-${refreshToken}` };
 					}
 					return undefined;
 				});
@@ -139,9 +162,10 @@ describe("getSession", () => {
 			name: "異常系: リフレッシュに失敗した場合、セッションをクリアしてnullを返す",
 			setup: () => {
 				const refreshToken = "invalid-refresh-token";
+				// Cookieには暗号化された値が保存されている
 				mockGet.mockImplementation((key: string) => {
 					if (key === REFRESH_TOKEN_COOKIE_KEY) {
-						return { value: refreshToken };
+						return { value: `encrypted-${refreshToken}` };
 					}
 					return undefined;
 				});
@@ -158,9 +182,10 @@ describe("getSession", () => {
 					sub: "user-123",
 					email: "test@example.com",
 				});
+				// Cookieには暗号化された値が保存されている
 				mockGet.mockImplementation((key: string) => {
 					if (key === ID_TOKEN_COOKIE_KEY) {
-						return { value: idToken };
+						return { value: `encrypted-${idToken}` };
 					}
 					return undefined;
 				});

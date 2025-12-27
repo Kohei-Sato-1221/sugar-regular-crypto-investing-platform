@@ -20,6 +20,7 @@ export const env = createEnv({
 		AWS_ACCESS_KEY_ID: z.string().optional(),
 		AWS_SECRET_ACCESS_KEY: z.string().optional(),
 		DATABASE_URL: z.string().url(),
+		AUTH_SECRET: z.string().min(32, "AUTH_SECRETは32文字以上である必要があります"),
 		NODE_ENV: z
 			.enum(["development", "test", "production"])
 			.default("development"),
@@ -46,6 +47,7 @@ export const env = createEnv({
 		AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
 		AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
 		DATABASE_URL: process.env.DATABASE_URL,
+		AUTH_SECRET: process.env.AUTH_SECRET,
 		NODE_ENV: process.env.NODE_ENV,
 	},
 	/**

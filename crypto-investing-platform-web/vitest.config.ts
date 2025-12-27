@@ -12,6 +12,10 @@ export default defineConfig({
 		env: {
 			NODE_ENV: "test",
 		},
+		// .envファイルを自動的に読み込む（Next.jsの通常の動作と同じ）
+		// envPrefixを空配列にすることで、すべての環境変数（プレフィックスなしも含む）を読み込む
+		envDir: ".",
+		envPrefix: [],
 		fileParallelism: false,
 		sequence: {
 			shuffle: false,

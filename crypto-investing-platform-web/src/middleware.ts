@@ -1,17 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { decodeIdToken, decodeAccessToken } from "~/server/auth/token-utils";
+import { decryptTokenEdge } from "~/server/auth/crypto-utils-edge";
 import { ACCESS_TOKEN_COOKIE_KEY, ID_TOKEN_COOKIE_KEY } from "./const/auth";
 
 // ミドルウェアでID Tokenを検証する簡易関数
 async function verifySession(request: NextRequest): Promise<boolean> {
-	const idToken = request.cookies.get(ID_TOKEN_COOKIE_KEY)?.value;
-	const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE_KEY)?.value;
+	const encryptedIdToken = request.cookies.get(ID_TOKEN_COOKIE_KEY)?.value;
+	const encryptedAccessToken = request.cookies.get(ACCESS_TOKEN_COOKIE_KEY)?.value;
 
-	if (!idToken || !accessToken) {
+	if (!encryptedIdToken || !encryptedAccessToken) {
 		return false;
 	}
 
 	try {
+		// 暗号化されたトークンを復号化
+		const idToken = await decryptTokenEdge(encryptedIdToken);
+		const accessToken = await decryptTokenEdge(encryptedAccessToken);
+
+		if (!idToken || !accessToken) {
+			return false;
+		}
+
 		const now = Date.now();
 
 		// ID Tokenの検証

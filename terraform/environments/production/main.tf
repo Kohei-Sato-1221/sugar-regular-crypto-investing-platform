@@ -116,6 +116,16 @@ locals {
       temporary_password    = "StockBidPass123!?"
       email_verified        = true
       phone_number_verified = true
+    },
+    {
+      username              = "night.god.moon.garsu@gmail.com"
+      email                 = "night.god.moon.garsu@gmail.com"
+      phone_number          = "+818011113333"
+      name                  = "Kohei Sato"
+      picture               = "https://assets.st-note.com/img/1712232991663-NKttzIyYUF.jpg"
+      temporary_password    = "StockBidPass123!?"
+      email_verified        = true
+      phone_number_verified = true
     }
   ]
 }

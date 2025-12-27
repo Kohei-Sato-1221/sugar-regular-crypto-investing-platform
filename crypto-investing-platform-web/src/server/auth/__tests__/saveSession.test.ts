@@ -25,6 +25,21 @@ vi.mock("../token-utils", () => ({
 	decodeIdToken: (token: string) => mockDecodeIdToken(token),
 }));
 
+// crypto-utilsをモック
+const mockEncryptToken = vi.fn((token: string) => `encrypted-${token}`);
+vi.mock("../crypto-utils", () => ({
+	encryptToken: (token: string) => mockEncryptToken(token),
+	decryptToken: vi.fn(),
+}));
+
+// env.jsをモック
+vi.mock("~/env", () => ({
+	env: {
+		AUTH_SECRET: "test-auth-secret-key-for-testing-purposes-only",
+		NODE_ENV: "test",
+	},
+}));
+
 describe("saveSession", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -61,11 +76,11 @@ describe("saveSession", () => {
 				expect(result.user.name).toBe("Test User");
 				expect(result.user.image).toBe("https://example.com/avatar.jpg");
 
-				// Cookieが3回設定されることを確認
+				// Cookieが3回設定されることを確認（暗号化された値が保存される）
 				expect(mockSet).toHaveBeenCalledTimes(3);
 				expect(mockSet).toHaveBeenCalledWith(
 					ACCESS_TOKEN_COOKIE_KEY,
-					"access-token-user-123",
+					"encrypted-access-token-user-123",
 					expect.objectContaining({
 						httpOnly: true,
 						secure: false, // テスト環境ではfalse
@@ -76,7 +91,7 @@ describe("saveSession", () => {
 				);
 				expect(mockSet).toHaveBeenCalledWith(
 					ID_TOKEN_COOKIE_KEY,
-					"id-token-user-123",
+					"encrypted-id-token-user-123",
 					expect.objectContaining({
 						httpOnly: true,
 						secure: false,
@@ -87,7 +102,7 @@ describe("saveSession", () => {
 				);
 				expect(mockSet).toHaveBeenCalledWith(
 					REFRESH_TOKEN_COOKIE_KEY,
-					"refresh-token-user-123",
+					"encrypted-refresh-token-user-123",
 					expect.objectContaining({
 						httpOnly: true,
 						secure: false,
