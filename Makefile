@@ -45,10 +45,10 @@ db-seed: ## seed database (if seed script exists) ## db-seed
 	cd ${WEBAPP_DIR} && bunx prisma db seed --schema=../${PRISMA_SCHEMA}
 
 test: ## run all tests (frontend and backend) ## test
-	cd ${WEBAPP_DIR} && bunx vitest run src/server && bunx vitest run src/app --passWithNoTests
+	cd ${WEBAPP_DIR} && bunx vitest run src/server && bunx vitest run src/app src/providers --passWithNoTests
 
 test-fe: ## run frontend tests only ## test-fe
-	cd ${WEBAPP_DIR} && bunx vitest run src/app --passWithNoTests
+	cd ${WEBAPP_DIR} && bunx vitest run src/app src/providers --passWithNoTests
 
 test-be: ## run backend tests only ## test-be
 	cd ${WEBAPP_DIR} && bunx vitest run src/server

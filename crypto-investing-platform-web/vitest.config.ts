@@ -23,6 +23,7 @@ export default defineConfig({
 		// 環境をファイルパスで判定（フロントエンドテストはjsdomを使用）
 		environmentMatchGlobs: [
 			["src/app/**/*.{test,spec}.{ts,tsx}", "jsdom"],
+			["src/providers/**/*.{test,spec}.{ts,tsx}", "jsdom"],
 		],
 	},
 	resolve: {

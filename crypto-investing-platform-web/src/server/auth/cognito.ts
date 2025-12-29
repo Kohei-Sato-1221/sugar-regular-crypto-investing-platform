@@ -322,54 +322,20 @@ export async function refreshTokens(refreshToken: string) {
 }
 
 /**
- * セッションからユーザー情報を取得
- * IdTokenが期限切れの場合は、RefreshTokenを使って自動リフレッシュを試行
+ * セッションからユーザー情報を取得（読み取り専用）
+ * Server Componentから呼び出されるため、Cookieの変更は行わない
+ * トークンのリフレッシュはミドルウェアで行う
  */
 export async function getSession() {
 	const cookieStore = await cookies();
 	const encryptedIdToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
-	const encryptedRefreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE_KEY)?.value;
 
 	// 暗号化されたトークンを復号化
 	const idToken = encryptedIdToken ? decryptToken(encryptedIdToken) : null;
-	const refreshToken = encryptedRefreshToken ? decryptToken(encryptedRefreshToken) : null;
 
-	// IdTokenがない場合
+	// IdTokenがない場合はnullを返す
 	if (!idToken) {
-		// RefreshTokenもない場合はnullを返す
-		if (!refreshToken) {
-			return null;
-		}
-
-		// RefreshTokenがある場合は、リフレッシュを試行
-		try {
-			const tokens = await refreshTokens(refreshToken);
-			await saveSession({
-				accessToken: tokens.accessToken,
-				idToken: tokens.idToken,
-				refreshToken, // 既存のRefreshTokenを保持
-			});
-
-			// 新しいIdTokenをデコード
-			const user = decodeIdToken(tokens.idToken);
-			if (!user) {
-				return null;
-			}
-
-			return {
-				user: {
-					id: user.sub,
-					email: user.email ?? null,
-					name: user.name ?? user["cognito:username"] ?? null,
-					image: user.picture ?? null,
-				},
-			};
-		} catch (error) {
-			// リフレッシュに失敗した場合はセッションをクリア
-			console.error("Failed to refresh tokens:", error);
-			await clearSession();
-			return null;
-		}
+		return null;
 	}
 
 	// IdTokenをデコード
@@ -378,47 +344,14 @@ export async function getSession() {
 		return null;
 	}
 
-	// トークンの有効期限をチェック（5分前を期限切れとみなす）
+	// トークンの有効期限をチェック
+	// 期限切れの場合はnullを返す（ミドルウェアがリフレッシュを処理する）
 	const expirationTime = user.exp ? user.exp * 1000 : 0;
 	const now = Date.now();
-	const bufferTime = 5 * 60 * 1000; // 5分
 
-	if (expirationTime < now + bufferTime) {
-		// トークンが期限切れまたは期限切れ間近の場合、RefreshTokenでリフレッシュを試行
-		if (refreshToken) {
-			try {
-				const tokens = await refreshTokens(refreshToken);
-				await saveSession({
-					accessToken: tokens.accessToken,
-					idToken: tokens.idToken,
-					refreshToken, // 既存のRefreshTokenを保持
-				});
-
-				// 新しいIdTokenをデコード
-				const refreshedUser = decodeIdToken(tokens.idToken);
-				if (!refreshedUser) {
-					return null;
-				}
-
-				return {
-					user: {
-						id: refreshedUser.sub,
-						email: refreshedUser.email ?? null,
-						name: refreshedUser.name ?? refreshedUser["cognito:username"] ?? null,
-						image: refreshedUser.picture ?? null,
-					},
-				};
-			} catch (error) {
-				// リフレッシュに失敗した場合はセッションをクリア
-				console.error("Failed to refresh tokens:", error);
-				await clearSession();
-				return null;
-			}
-		} else {
-			// RefreshTokenがない場合はセッションをクリア
-			await clearSession();
-			return null;
-		}
+	if (expirationTime < now) {
+		// トークンが完全に期限切れの場合はnullを返す
+		return null;
 	}
 
 	return {
