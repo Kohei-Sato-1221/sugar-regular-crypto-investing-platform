@@ -9,11 +9,8 @@ export function TodoList({ todos }: { todos: Todo[] }) {
 			{todos.length === 0 ? (
 				<p className="text-gray-300">No todos yet. Add one below!</p>
 			) : (
-				todos.map((todo) => (
-					<TodoItem key={todo.id} todo={todo} />
-				))
+				todos.map((todo) => <TodoItem key={todo.id} todo={todo} />)
 			)}
 		</div>
 	);
 }
-

@@ -8,22 +8,15 @@ export const env = createEnv({
 	 */
 	server: {
 		COGNITO_USER_POOL_ID:
-			process.env.NODE_ENV === "production"
-				? z.string()
-				: z.string().optional(),
-		COGNITO_CLIENT_ID:
-			process.env.NODE_ENV === "production"
-				? z.string()
-				: z.string().optional(),
+			process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+		COGNITO_CLIENT_ID: process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
 		COGNITO_CLIENT_SECRET: z.string().optional(),
 		AWS_REGION: z.string().default("ap-northeast-1"),
 		AWS_ACCESS_KEY_ID: z.string().optional(),
 		AWS_SECRET_ACCESS_KEY: z.string().optional(),
 		DATABASE_URL: z.string().url(),
 		AUTH_SECRET: z.string().min(32, "AUTH_SECRETは32文字以上である必要があります"),
-		NODE_ENV: z
-			.enum(["development", "test", "production"])
-			.default("development"),
+		NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 	},
 
 	/**

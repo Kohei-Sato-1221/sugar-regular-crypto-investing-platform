@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AddTodoForm } from "../AddTodoForm";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as todoActions from "../../actions/todo";
+import { AddTodoForm } from "../AddTodoForm";
 
 // Server Actionsのモック
 vi.mock("../../actions/todo", () => ({
@@ -22,9 +22,7 @@ describe("AddTodoForm", () => {
 	it("正常系: フォームが正しくレンダリングされる", () => {
 		render(<AddTodoForm />);
 
-		expect(
-			screen.getByPlaceholderText(/Add a new todo/i),
-		).toBeInTheDocument();
+		expect(screen.getByPlaceholderText(/Add a new todo/i)).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /Add/i })).toBeInTheDocument();
 	});
 
@@ -63,7 +61,7 @@ describe("AddTodoForm", () => {
 
 		const input = screen.getByPlaceholderText(/Add a new todo/i) as HTMLInputElement;
 		await user.type(input, "New Todo");
-		
+
 		// 入力値が設定されていることを確認
 		expect(input.value).toBe("New Todo");
 
@@ -93,7 +91,7 @@ describe("AddTodoForm", () => {
 	it("正常系: 処理中はボタンと入力欄が無効化される", async () => {
 		const user = userEvent.setup();
 		const mockCreateTodo = vi.mocked(todoActions.createTodo);
-		
+
 		// 非同期処理を遅延させる
 		mockCreateTodo.mockImplementation(
 			() =>
@@ -150,5 +148,3 @@ describe("AddTodoForm", () => {
 		expect(button).not.toBeDisabled();
 	});
 });
-
-

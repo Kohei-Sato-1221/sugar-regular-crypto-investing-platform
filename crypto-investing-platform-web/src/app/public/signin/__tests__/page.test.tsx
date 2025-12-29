@@ -1,9 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter, useSearchParams } from "next/navigation";
-import SignInPage from "../page";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "~/trpc/react";
+import SignInPage from "../page";
+
+// テスト用のモック型定義
+type MockRouter = {
+	push: ReturnType<typeof vi.fn>;
+	replace: ReturnType<typeof vi.fn>;
+	prefetch: ReturnType<typeof vi.fn>;
+	back: ReturnType<typeof vi.fn>;
+	refresh: ReturnType<typeof vi.fn>;
+};
+
+type MockSearchParams = {
+	get: ReturnType<typeof vi.fn>;
+	has: ReturnType<typeof vi.fn>;
+	getAll: ReturnType<typeof vi.fn>;
+};
+
+type MockMutation = {
+	mutateAsync: ReturnType<typeof vi.fn>;
+	isPending: boolean;
+};
 
 // Next.js Routerのモック（setup.tsのモックを上書き）
 const mockPush = vi.fn();
@@ -38,7 +58,7 @@ vi.mock("~/trpc/react", () => ({
 describe("SignInPage", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		
+
 		// Routerのモック設定
 		vi.mocked(useRouter).mockReturnValue({
 			push: mockPush,
@@ -46,7 +66,7 @@ describe("SignInPage", () => {
 			prefetch: vi.fn(),
 			back: vi.fn(),
 			refresh: mockRefresh,
-		} as any);
+		} as MockRouter);
 
 		// SearchParamsのモック設定（デフォルトはnull）
 		mockGet.mockReturnValue(null);
@@ -54,13 +74,13 @@ describe("SignInPage", () => {
 			get: mockGet,
 			has: vi.fn(),
 			getAll: vi.fn(),
-		} as any);
+		} as MockSearchParams);
 
 		// tRPCのモック設定
 		vi.mocked(api.auth.signIn.useMutation).mockReturnValue({
 			mutateAsync: mockMutateAsync,
 			isPending: false,
-		} as any);
+		} as MockMutation);
 
 		vi.mocked(api.useUtils).mockImplementation(mockUseUtils);
 	});
@@ -166,9 +186,7 @@ describe("SignInPage", () => {
 		await user.click(screen.getByRole("button", { name: /ログイン/i }));
 
 		await waitFor(() => {
-			expect(
-				screen.getByText(/ユーザー名またはパスワードが正しくありません/i),
-			).toBeInTheDocument();
+			expect(screen.getByText(/ユーザー名またはパスワードが正しくありません/i)).toBeInTheDocument();
 		});
 	});
 
@@ -215,9 +233,7 @@ describe("SignInPage", () => {
 		await user.click(screen.getByRole("button", { name: /ログイン/i }));
 
 		await waitFor(() => {
-			expect(mockPush).toHaveBeenCalledWith(
-				expect.stringContaining("/public/change-password"),
-			);
+			expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("/public/change-password"));
 			const callArg = mockPush.mock.calls[0]?.[0];
 			expect(callArg).toContain("session=session-token");
 			// URLエンコードされたusernameを確認
@@ -227,15 +243,15 @@ describe("SignInPage", () => {
 
 	it("正常系: ログイン中はボタンが無効化される", async () => {
 		const user = userEvent.setup();
-		
+
 		// 最初はisPending: false
 		vi.mocked(api.auth.signIn.useMutation).mockReturnValue({
 			mutateAsync: mockMutateAsync,
 			isPending: false,
-		} as any);
+		} as MockMutation);
 
 		render(<SignInPage />);
-		
+
 		const button = screen.getByRole("button", { name: /ログイン/i });
 		expect(button).not.toBeDisabled();
 
@@ -262,4 +278,3 @@ describe("SignInPage", () => {
 		expect(mockMutateAsync).toHaveBeenCalled();
 	});
 });
-

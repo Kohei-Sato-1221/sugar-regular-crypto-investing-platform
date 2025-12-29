@@ -31,8 +31,7 @@ export function UserInfo() {
 				</p>
 				{user.email && (
 					<p>
-						<span className="font-semibold text-gray-300">Email:</span>{" "}
-						{user.email}
+						<span className="font-semibold text-gray-300">Email:</span> {user.email}
 					</p>
 				)}
 			</div>

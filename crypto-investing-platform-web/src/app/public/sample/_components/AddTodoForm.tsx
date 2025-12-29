@@ -20,23 +20,22 @@ export function AddTodoForm() {
 	};
 
 	return (
-		<form onSubmit={handleSubmit} className="flex gap-2">
+		<form className="flex gap-2" onSubmit={handleSubmit}>
 			<input
-				type="text"
-				value={title}
+				className="flex-1 rounded-lg bg-white/10 px-4 py-2 text-white placeholder-gray-400 backdrop-blur focus:bg-white/20 focus:outline-none disabled:opacity-50"
+				disabled={isPending}
 				onChange={(e) => setTitle(e.target.value)}
 				placeholder="Add a new todo..."
-				disabled={isPending}
-				className="flex-1 rounded-lg bg-white/10 px-4 py-2 text-white placeholder-gray-400 backdrop-blur focus:bg-white/20 focus:outline-none disabled:opacity-50"
+				type="text"
+				value={title}
 			/>
 			<button
-				type="submit"
+				className="rounded-lg bg-blue-500 px-6 py-2 font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
 				disabled={isPending || !title.trim()}
-				className="rounded-lg bg-blue-500 px-6 py-2 font-semibold text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+				type="submit"
 			>
 				{isPending ? "Adding..." : "Add"}
 			</button>
 		</form>
 	);
 }
-

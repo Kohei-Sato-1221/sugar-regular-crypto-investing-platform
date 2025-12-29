@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useAtomValue } from "jotai";
+import Link from "next/link";
 
 import { userAtom } from "~/store/user";
 
@@ -21,8 +21,8 @@ export function AuthStatus() {
 				{user ? (
 					<form action="/api/auth/signout" method="POST">
 						<button
-							type="submit"
 							className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
+							type="submit"
 						>
 							Sign out
 						</button>
@@ -39,4 +39,3 @@ export function AuthStatus() {
 		</div>
 	);
 }
-

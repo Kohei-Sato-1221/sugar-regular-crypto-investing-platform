@@ -77,9 +77,7 @@ export async function decryptTokenEdge(encryptedToken: string): Promise<string |
 
 		const decoder = new TextDecoder();
 		return decoder.decode(decrypted);
-	} catch (error) {
-		console.error("Token decryption failed (Edge):", error);
+	} catch (_error) {
 		return null;
 	}
 }
-

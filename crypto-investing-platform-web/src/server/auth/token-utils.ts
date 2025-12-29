@@ -11,7 +11,7 @@ export function decodeIdToken(idToken: string) {
 
 		const base64Url = parts[1];
 		const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-		
+
 		// Node.js環境ではBufferを使用、それ以外（Edge Runtime）ではatobを使用
 		let jsonPayload: string;
 		// Node.js環境ではBufferを使用（テスト環境でも確実に動作するように）
@@ -24,7 +24,7 @@ export function decodeIdToken(idToken: string) {
 				atob(base64)
 					.split("")
 					.map((c) => {
-						return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+						return `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`;
 					})
 					.join(""),
 			);
@@ -41,12 +41,11 @@ export function decodeIdToken(idToken: string) {
 			exp?: number;
 			[key: string]: unknown;
 		};
-	} catch (error) {
+	} catch (_error) {
 		// エラー時はnullを返す（エラーログは出さない）
 		return null;
 	}
 }
-
 
 /**
  * Edge Runtime対応のAccessTokenデコード関数
@@ -61,7 +60,7 @@ export function decodeAccessToken(accessToken: string) {
 
 		const base64Url = parts[1];
 		const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-		
+
 		// Node.js環境ではBufferを使用、それ以外（Edge Runtime）ではatobを使用
 		let jsonPayload: string;
 		// Node.js環境ではBufferを使用（テスト環境でも確実に動作するように）
@@ -74,7 +73,7 @@ export function decodeAccessToken(accessToken: string) {
 				atob(base64)
 					.split("")
 					.map((c) => {
-						return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+						return `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`;
 					})
 					.join(""),
 			);

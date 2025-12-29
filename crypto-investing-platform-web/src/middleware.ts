@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { decodeIdToken, decodeAccessToken } from "~/server/auth/token-utils";
 import { decryptTokenEdge } from "~/server/auth/crypto-utils-edge";
+import { decodeAccessToken, decodeIdToken } from "~/server/auth/token-utils";
 import { ACCESS_TOKEN_COOKIE_KEY, ID_TOKEN_COOKIE_KEY } from "./const/auth";
 
 // ミドルウェアでID Tokenを検証する簡易関数
@@ -83,20 +83,14 @@ function addSecurityHeaders(response: NextResponse, request: NextRequest): NextR
 
 	// Strict-Transport-Security (HSTS): HTTPSを強制
 	if (request.nextUrl.protocol === "https:") {
-		headers.set(
-			"Strict-Transport-Security",
-			"max-age=31536000; includeSubDomains; preload",
-		);
+		headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
 	}
 
 	// Referrer-Policy: リファラー情報の送信を制御
 	headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
 	// Permissions-Policy: ブラウザ機能へのアクセスを制限
-	headers.set(
-		"Permissions-Policy",
-		"geolocation=(), microphone=(), camera=(), payment=()",
-	);
+	headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=()");
 
 	return new NextResponse(response.body, {
 		status: response.status,
@@ -165,7 +159,7 @@ export async function middleware(req: NextRequest) {
 	// /privateルートを保護（認証が必要）
 	if (pathname.startsWith("/private")) {
 		const isAuthenticated = await verifySession(req);
-		
+
 		if (!isAuthenticated) {
 			// 認証されていない場合はサインインページにリダイレクト
 			const signInUrl = new URL("/public/signin", req.url);
@@ -177,10 +171,7 @@ export async function middleware(req: NextRequest) {
 
 	// レスポンスを作成
 	let response: NextResponse;
-	if (
-		pathname.startsWith("/public") ||
-		pathname.startsWith("/api/auth")
-	) {
+	if (pathname.startsWith("/public") || pathname.startsWith("/api/auth")) {
 		response = NextResponse.next();
 	} else {
 		response = NextResponse.next();

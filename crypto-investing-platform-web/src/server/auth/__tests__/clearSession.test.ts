@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-	ID_TOKEN_COOKIE_KEY,
 	ACCESS_TOKEN_COOKIE_KEY,
+	ID_TOKEN_COOKIE_KEY,
 	REFRESH_TOKEN_COOKIE_KEY,
 } from "~/const/auth";
 

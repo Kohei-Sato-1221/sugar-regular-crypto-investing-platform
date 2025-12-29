@@ -1,9 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { useAtomValue } from "jotai";
-
-import { GlobalProvider } from "../GlobalProvider";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userAtom } from "~/store/user";
+import { GlobalProvider } from "../GlobalProvider";
 
 /**
  * テスト用のコンシューマーコンポーネント
@@ -41,9 +40,7 @@ describe("GlobalProvider", () => {
 
 			expect(screen.getByTestId("user-id")).toHaveTextContent("user-123");
 			expect(screen.getByTestId("user-name")).toHaveTextContent("テストユーザー");
-			expect(screen.getByTestId("user-email")).toHaveTextContent(
-				"test@example.com",
-			);
+			expect(screen.getByTestId("user-email")).toHaveTextContent("test@example.com");
 		});
 
 		it("emailがnullでも正しくハイドレートされる", () => {
@@ -60,9 +57,7 @@ describe("GlobalProvider", () => {
 			);
 
 			expect(screen.getByTestId("user-id")).toHaveTextContent("user-456");
-			expect(screen.getByTestId("user-name")).toHaveTextContent(
-				"メールなしユーザー",
-			);
+			expect(screen.getByTestId("user-name")).toHaveTextContent("メールなしユーザー");
 			expect(screen.getByTestId("user-email")).toHaveTextContent("null");
 		});
 
@@ -98,4 +93,3 @@ describe("GlobalProvider", () => {
 		});
 	});
 });
-

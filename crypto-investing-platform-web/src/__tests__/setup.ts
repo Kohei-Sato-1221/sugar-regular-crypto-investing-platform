@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { vi } from "vitest";
-import { readFileSync } from "fs";
-import { resolve } from "path";
 
 // .envファイルを読み込む（Node.js標準機能を使用、dotenvパッケージは使用しない）
 const envPath = resolve(process.cwd(), ".env");
@@ -32,12 +32,14 @@ try {
 			}
 		}
 	}
-} catch (error) {
+} catch (_error) {
 	// .envファイルが存在しない場合は無視（環境変数が既に設定されている可能性がある）
 }
 
 // 実際のDB接続情報を使用（docker-compose.ymlの設定に合わせる）
-process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://ragus:investingPassWork12345@localhost:6543/investing_platform_db?schema=public";
+process.env.DATABASE_URL =
+	process.env.DATABASE_URL ||
+	"postgresql://ragus:investingPassWork12345@localhost:6543/investing_platform_db?schema=public";
 
 // AUTH_SECRETは.envファイルから読み込まれる必要がある（必須）
 if (!process.env.AUTH_SECRET) {
@@ -69,4 +71,3 @@ vi.mock("next/navigation", () => ({
 	}),
 	usePathname: () => "/",
 }));
-

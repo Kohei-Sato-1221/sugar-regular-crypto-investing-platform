@@ -14,4 +14,3 @@ export type User = {
  * モジュールスコープで定義することで、アプリ全体で同じインスタンスを共有
  */
 export const userAtom = atom<User>(null);
-

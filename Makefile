@@ -53,6 +53,21 @@ test-fe: ## run frontend tests only ## test-fe
 test-be: ## run backend tests only ## test-be
 	cd ${WEBAPP_DIR} && bunx vitest run src/server
 
+lint: ## run biome lint and format check ## lint
+	cd ${WEBAPP_DIR} && bun run check
+
+lint-fix: ## run biome lint and format with auto-fix ## lint-fix
+	cd ${WEBAPP_DIR} && bun run check:write
+
+lint-fix-unsafe: ## run biome lint and format with unsafe auto-fix ## lint-fix-unsafe
+	cd ${WEBAPP_DIR} && bun run check:unsafe
+
+format: ## run biome format only ## format
+	cd ${WEBAPP_DIR} && bunx biome format --write .
+
+typecheck: ## run TypeScript type check ## typecheck
+	cd ${WEBAPP_DIR} && bun run typecheck
+
 lib-version: ## install mise and setup tool versions (for new team members) ## lib-version
 	@echo "🔧 Setting up development environment with mise..."
 	@if command -v mise > /dev/null 2>&1; then \

@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes, pbkdf2Sync } from "crypto";
+import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from "node:crypto";
 import { env } from "~/env";
 
 /**
@@ -30,8 +30,7 @@ export function encryptToken(token: string): string {
 		// IV + 認証タグ + 暗号化データを結合してBase64エンコード
 		const combined = Buffer.concat([iv, authTag, encrypted]);
 		return combined.toString("base64");
-	} catch (error) {
-		console.error("Token encryption failed:", error);
+	} catch (_error) {
 		throw new Error("トークンの暗号化に失敗しました");
 	}
 }
@@ -61,10 +60,7 @@ export function decryptToken(encryptedToken: string): string | null {
 		decrypted = Buffer.concat([decrypted, decipher.final()]);
 
 		return decrypted.toString("utf8");
-	} catch (error) {
-		console.error("Token decryption failed:", error);
+	} catch (_error) {
 		return null;
 	}
 }
-
-

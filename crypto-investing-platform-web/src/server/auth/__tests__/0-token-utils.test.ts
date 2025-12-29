@@ -1,10 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { decodeIdToken, decodeAccessToken } from "../token-utils";
+import { decodeAccessToken, decodeIdToken } from "../token-utils";
+
+type IdTokenResult = ReturnType<typeof decodeIdToken>;
+type AccessTokenResult = ReturnType<typeof decodeAccessToken>;
 
 describe("token-utils", () => {
 	describe("decodeIdToken", () => {
-		const testCases = [
+		const testCases: Array<{
+			name: string;
+			input: string;
+			expected: (result: IdTokenResult) => void;
+		}> = [
 			{
 				name: "正常系: 有効なIdTokenをデコード",
 				input: (() => {
@@ -21,7 +28,7 @@ describe("token-utils", () => {
 					const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
 					return `${encodedHeader}.${encodedPayload}.mock-signature`;
 				})(),
-				expected: (result: any) => {
+				expected: (result: IdTokenResult) => {
 					expect(result).not.toBeNull();
 					expect(result?.sub).toBe("user-123");
 					expect(result?.email).toBe("test@example.com");
@@ -42,7 +49,7 @@ describe("token-utils", () => {
 					const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
 					return `${encodedHeader}.${encodedPayload}.mock-signature`;
 				})(),
-				expected: (result: any) => {
+				expected: (result: IdTokenResult) => {
 					expect(result).not.toBeNull();
 					expect(result?.sub).toBe("user-456");
 				},
@@ -50,21 +57,21 @@ describe("token-utils", () => {
 			{
 				name: "異常系: 無効な形式のトークン（ドットが不足）",
 				input: "invalid-token",
-				expected: (result: any) => {
+				expected: (result: IdTokenResult) => {
 					expect(result).toBeNull();
 				},
 			},
 			{
 				name: "異常系: 空文字列",
 				input: "",
-				expected: (result: any) => {
+				expected: (result: IdTokenResult) => {
 					expect(result).toBeNull();
 				},
 			},
 			{
 				name: "異常系: 無効なBase64URL形式",
 				input: "header.invalid-base64.signature",
-				expected: (result: any) => {
+				expected: (result: IdTokenResult) => {
 					expect(result).toBeNull();
 				},
 			},
@@ -82,7 +89,11 @@ describe("token-utils", () => {
 	});
 
 	describe("decodeAccessToken", () => {
-		const testCases = [
+		const testCases: Array<{
+			name: string;
+			input: string;
+			expected: (result: AccessTokenResult) => void;
+		}> = [
 			{
 				name: "正常系: 有効なAccessTokenをデコード",
 				input: (() => {
@@ -100,7 +111,7 @@ describe("token-utils", () => {
 					const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
 					return `${encodedHeader}.${encodedPayload}.mock-signature`;
 				})(),
-				expected: (result: any) => {
+				expected: (result: AccessTokenResult) => {
 					expect(result).not.toBeNull();
 					expect(result?.sub).toBe("user-123");
 					expect(result?.scope).toBe("aws.cognito.signin.user.admin");
@@ -122,7 +133,7 @@ describe("token-utils", () => {
 					const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
 					return `${encodedHeader}.${encodedPayload}.mock-signature`;
 				})(),
-				expected: (result: any) => {
+				expected: (result: AccessTokenResult) => {
 					expect(result).not.toBeNull();
 					expect(result?.sub).toBe("user-456");
 				},
@@ -130,21 +141,21 @@ describe("token-utils", () => {
 			{
 				name: "異常系: 無効な形式のトークン（ドットが不足）",
 				input: "invalid-token",
-				expected: (result: any) => {
+				expected: (result: AccessTokenResult) => {
 					expect(result).toBeNull();
 				},
 			},
 			{
 				name: "異常系: 空文字列",
 				input: "",
-				expected: (result: any) => {
+				expected: (result: AccessTokenResult) => {
 					expect(result).toBeNull();
 				},
 			},
 			{
 				name: "異常系: 無効なBase64URL形式",
 				input: "header.invalid-base64.signature",
-				expected: (result: any) => {
+				expected: (result: AccessTokenResult) => {
 					expect(result).toBeNull();
 				},
 			},
@@ -161,4 +172,3 @@ describe("token-utils", () => {
 		});
 	});
 });
-

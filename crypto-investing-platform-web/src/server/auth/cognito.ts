@@ -1,19 +1,19 @@
+import { createHmac } from "node:crypto";
 import {
 	CognitoIdentityProviderClient,
 	InitiateAuthCommand,
 	RespondToAuthChallengeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
-import { createHmac } from "crypto";
 import { cookies } from "next/headers";
-
+import {
+	ACCESS_TOKEN_COOKIE_KEY,
+	ID_TOKEN_COOKIE_KEY,
+	REFRESH_TOKEN_COOKIE_KEY,
+} from "~/const/auth";
 import { env } from "~/env";
-import { decodeIdToken } from "./token-utils";
-import { encryptToken, decryptToken } from "./crypto-utils";
-
-import { ID_TOKEN_COOKIE_KEY, ACCESS_TOKEN_COOKIE_KEY, REFRESH_TOKEN_COOKIE_KEY } from "~/const/auth";
-
+import { decryptToken, encryptToken } from "./crypto-utils";
 import { createMockCognitoClient } from "./mock-auth";
-
+import { decodeIdToken } from "./token-utils";
 
 /**
  * Cognito認証クライアントを作成
@@ -33,7 +33,7 @@ function createCognitoClient() {
 						accessKeyId: env.AWS_ACCESS_KEY_ID,
 						secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
 					},
-			  }
+				}
 			: {}),
 	});
 }
@@ -42,11 +42,7 @@ function createCognitoClient() {
  * Cognito用のSecret Hashを生成
  * Confidential Clientの場合、SECRET_HASHが必要
  */
-function generateSecretHash(
-	username: string,
-	clientId: string,
-	clientSecret: string,
-): string {
+function generateSecretHash(username: string, clientId: string, clientSecret: string): string {
 	return createHmac("SHA256", clientSecret)
 		.update(username + clientId)
 		.digest("base64");
@@ -99,21 +95,12 @@ export async function signIn(username: string, password: string) {
 					},
 				};
 			}
-			
-			console.error("Cognito authentication failed: No AuthenticationResult in response", {
-				fullResponse: JSON.stringify(response, null, 2),
-				challengeName: response.ChallengeName,
-				challengeParameters: response.ChallengeParameters,
-				session: response.Session,
-			});
-			
+
 			// Challengeが返ってきた場合のエラーメッセージ
 			if (response.ChallengeName) {
-				throw new Error(
-					`認証に追加のチャレンジが必要です: ${response.ChallengeName}`,
-				);
+				throw new Error(`認証に追加のチャレンジが必要です: ${response.ChallengeName}`);
 			}
-			
+
 			throw new Error("認証に失敗しました");
 		}
 
@@ -123,35 +110,12 @@ export async function signIn(username: string, password: string) {
 			refreshToken: response.AuthenticationResult.RefreshToken,
 		};
 	} catch (error) {
-		// 詳細なエラーログを出力
-		console.error("Cognito authentication error details:", {
-			error: error,
-			errorName: error instanceof Error ? error.name : "Unknown",
-			errorMessage: error instanceof Error ? error.message : String(error),
-			errorStack: error instanceof Error ? error.stack : undefined,
-			// AWS SDKのエラー情報
-			...(error && typeof error === "object" && "$metadata" in error
-				? {
-						metadata: (error as { $metadata?: unknown }).$metadata,
-						code: (error as { code?: string }).code,
-						requestId: (error as { $metadata?: { requestId?: string } }).$metadata
-							?.requestId,
-				  }
-				: {}),
-			// リクエストパラメータ（パスワードは除外）
-			requestParams: {
-				ClientId: env.COGNITO_CLIENT_ID,
-				AuthFlow: "USER_PASSWORD_AUTH",
-				hasSecretHash: !!env.COGNITO_CLIENT_SECRET,
-			},
-		});
-		
 		// より詳細なエラーメッセージを提供
 		// エラーオブジェクトの形式をチェック（Errorインスタンスまたはオブジェクト）
 		const errorObj = error instanceof Error ? error : (error as object);
 		const errorName = "name" in errorObj ? (errorObj as { name?: string }).name : undefined;
 		const errorCode = "code" in errorObj ? (errorObj as { code?: string }).code : undefined;
-		
+
 		if (errorName === "InvalidParameterException" || errorCode === "InvalidParameterException") {
 			throw new Error(
 				"認証フローが有効になっていません。Cognito App Clientの設定で「ALLOW_USER_PASSWORD_AUTH」を有効にしてください。",
@@ -166,11 +130,10 @@ export async function signIn(username: string, password: string) {
 		if (errorName === "UserNotConfirmedException" || errorCode === "UserNotConfirmedException") {
 			throw new Error("アカウントが確認されていません。");
 		}
-		
+
 		throw error;
 	}
 }
-
 
 /**
  * セッションにトークンを保存
@@ -181,7 +144,7 @@ export async function saveSession(tokens: {
 	refreshToken?: string;
 }) {
 	const cookieStore = await cookies();
-	
+
 	// ID Tokenからユーザー情報を取得
 	const user = decodeIdToken(tokens.idToken);
 	if (!user) {
@@ -252,7 +215,7 @@ export async function refreshTokens(refreshToken: string) {
 			// ここでは、CookieからIdTokenを取得してユーザー名を抽出する
 			const cookieStore = await cookies();
 			const encryptedIdToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
-			
+
 			if (encryptedIdToken) {
 				const idToken = decryptToken(encryptedIdToken);
 				if (idToken) {
@@ -272,7 +235,8 @@ export async function refreshTokens(refreshToken: string) {
 		}
 
 		// テスト環境ではCOGNITO_CLIENT_IDがundefinedでもモッククライアントを使用するため、空文字列を使用
-		const clientId = env.COGNITO_CLIENT_ID || (env.NODE_ENV === "test" ? "test-client-id" : undefined);
+		const clientId =
+			env.COGNITO_CLIENT_ID || (env.NODE_ENV === "test" ? "test-client-id" : undefined);
 		if (!clientId && env.NODE_ENV !== "test") {
 			throw new Error("Cognito設定が完了していません。環境変数を確認してください。");
 		}
@@ -287,9 +251,6 @@ export async function refreshTokens(refreshToken: string) {
 		const response = await client.send(command);
 
 		if (!response.AuthenticationResult) {
-			console.error("Token refresh failed: No AuthenticationResult in response", {
-				fullResponse: JSON.stringify(response, null, 2),
-			});
 			throw new Error("トークンのリフレッシュに失敗しました");
 		}
 
@@ -303,12 +264,6 @@ export async function refreshTokens(refreshToken: string) {
 			// RefreshTokenは返さない（既存のRefreshTokenを継続使用）
 		};
 	} catch (error) {
-		console.error("Token refresh error details:", {
-			error: error,
-			errorName: error instanceof Error ? error.name : "Unknown",
-			errorMessage: error instanceof Error ? error.message : String(error),
-		});
-
 		const errorObj = error instanceof Error ? error : (error as object);
 		const errorName = "name" in errorObj ? (errorObj as { name?: string }).name : undefined;
 		const errorCode = "code" in errorObj ? (errorObj as { code?: string }).code : undefined;
@@ -377,77 +332,64 @@ export async function respondToNewPasswordChallenge(
 	}
 
 	const client = createCognitoClient();
+	const challengeParams: Record<string, string> = {
+		NEW_PASSWORD: newPassword,
+	};
 
-	try {
-		const challengeParams: Record<string, string> = {
-			NEW_PASSWORD: newPassword,
-		};
+	// USERNAMEが提供されている場合は追加
+	if (username) {
+		challengeParams.USERNAME = username;
+	}
 
-		// USERNAMEが提供されている場合は追加
-		if (username) {
-			challengeParams.USERNAME = username;
-		}
-
-		// Confidential Clientの場合、SECRET_HASHを追加
-		if (env.COGNITO_CLIENT_SECRET) {
-			// USERNAMEが必要（Secret Hashの計算に必要）
-			if (!username) {
-				// セッションからユーザー名を取得を試行
-				const cookieStore = await cookies();
-				const encryptedIdToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
-				if (encryptedIdToken) {
-					const idToken = decryptToken(encryptedIdToken);
-					if (idToken) {
-						const decodedToken = decodeIdToken(idToken);
-						if (decodedToken) {
-							username = decodedToken["cognito:username"] ?? decodedToken.email ?? undefined;
-							if (username) {
-								challengeParams.USERNAME = username;
-							}
+	// Confidential Clientの場合、SECRET_HASHを追加
+	if (env.COGNITO_CLIENT_SECRET) {
+		// USERNAMEが必要（Secret Hashの計算に必要）
+		if (!username) {
+			// セッションからユーザー名を取得を試行
+			const cookieStore = await cookies();
+			const encryptedIdToken = cookieStore.get(ID_TOKEN_COOKIE_KEY)?.value;
+			if (encryptedIdToken) {
+				const idToken = decryptToken(encryptedIdToken);
+				if (idToken) {
+					const decodedToken = decodeIdToken(idToken);
+					if (decodedToken) {
+						username = decodedToken["cognito:username"] ?? decodedToken.email ?? undefined;
+						if (username) {
+							challengeParams.USERNAME = username;
 						}
 					}
 				}
-				if (!username) {
-					throw new Error("ユーザー名が必要です");
-				}
 			}
-			challengeParams.SECRET_HASH = generateSecretHash(
-				username,
-				env.COGNITO_CLIENT_ID,
-				env.COGNITO_CLIENT_SECRET,
-			);
+			if (!username) {
+				throw new Error("ユーザー名が必要です");
+			}
 		}
-
-		const params = {
-			ClientId: env.COGNITO_CLIENT_ID,
-			ChallengeName: "NEW_PASSWORD_REQUIRED" as const,
-			Session: session,
-			ChallengeResponses: challengeParams,
-		};
-
-		const command = new RespondToAuthChallengeCommand(params);
-		const response = await client.send(command);
-
-		if (!response.AuthenticationResult) {
-			console.error("Password change failed: No AuthenticationResult in response", {
-				fullResponse: JSON.stringify(response, null, 2),
-			});
-			throw new Error("パスワード変更に失敗しました");
-		}
-
-		return {
-			accessToken: response.AuthenticationResult.AccessToken,
-			idToken: response.AuthenticationResult.IdToken,
-			refreshToken: response.AuthenticationResult.RefreshToken,
-		};
-	} catch (error) {
-		console.error("Password change error details:", {
-			error: error,
-			errorName: error instanceof Error ? error.name : "Unknown",
-			errorMessage: error instanceof Error ? error.message : String(error),
-		});
-		throw error;
+		challengeParams.SECRET_HASH = generateSecretHash(
+			username,
+			env.COGNITO_CLIENT_ID,
+			env.COGNITO_CLIENT_SECRET,
+		);
 	}
+
+	const params = {
+		ClientId: env.COGNITO_CLIENT_ID,
+		ChallengeName: "NEW_PASSWORD_REQUIRED" as const,
+		Session: session,
+		ChallengeResponses: challengeParams,
+	};
+
+	const command = new RespondToAuthChallengeCommand(params);
+	const response = await client.send(command);
+
+	if (!response.AuthenticationResult) {
+		throw new Error("パスワード変更に失敗しました");
+	}
+
+	return {
+		accessToken: response.AuthenticationResult.AccessToken,
+		idToken: response.AuthenticationResult.IdToken,
+		refreshToken: response.AuthenticationResult.RefreshToken,
+	};
 }
 
 /**
@@ -459,4 +401,3 @@ export async function clearSession() {
 	cookieStore.delete(ACCESS_TOKEN_COOKIE_KEY);
 	cookieStore.delete(REFRESH_TOKEN_COOKIE_KEY);
 }
-

@@ -1,7 +1,39 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createCallerFactory } from "~/server/api/trpc";
 import { authRouter } from "../auth";
+
+// テスト用の型定義
+type SignInResult = {
+	success: boolean;
+	user?: { id: string; email: string | null; name: string | null };
+	requiresPasswordChange?: boolean;
+	challenge?: { name: string; session: string; username?: string };
+};
+
+type ChangePasswordResult = {
+	success: boolean;
+	user?: { id: string; email: string | null; name: string | null };
+};
+
+type GetSessionResult = {
+	user?: { id: string; email: string | null; name: string | null; image?: string | null };
+} | null;
+
+type MockUser = {
+	id: string;
+	email: string | null;
+	name: string | null;
+	image?: string | null;
+};
+
+type SetupContext = {
+	mockUser?: MockUser;
+};
+
+type MockAuthFunction = {
+	mockResolvedValue: (value: GetSessionResult) => void;
+};
 
 // auth関数をモック
 vi.mock("~/server/auth", () => ({
@@ -39,7 +71,7 @@ describe("authRouter", () => {
 		mockSaveSession.mockClear();
 		mockRespondToNewPasswordChallenge.mockClear();
 		mockClearSession.mockClear();
-		
+
 		// 既存のspyをクリーンアップ
 		try {
 			if (saveSessionSpy) {
@@ -62,17 +94,19 @@ describe("authRouter", () => {
 		} catch {
 			// spyが存在しない場合は無視
 		}
-		
+
 		// spyを再設定
 		saveSessionSpy = vi.spyOn(cognitoModule, "saveSession").mockImplementation(mockSaveSession);
-		respondToNewPasswordChallengeSpy = vi.spyOn(cognitoModule, "respondToNewPasswordChallenge").mockImplementation(mockRespondToNewPasswordChallenge);
+		respondToNewPasswordChallengeSpy = vi
+			.spyOn(cognitoModule, "respondToNewPasswordChallenge")
+			.mockImplementation(mockRespondToNewPasswordChallenge);
 		clearSessionSpy = vi.spyOn(cognitoModule, "clearSession").mockImplementation(mockClearSession);
-		
+
 		// セッションは各テストで個別に管理するため、ここではクリアしない
 		// clearMockSessions();
 		// auth関数のデフォルトの戻り値を設定
 		if (typeof auth === "function" && "mockResolvedValue" in auth) {
-			(auth as any).mockResolvedValue(null);
+			(auth as { mockResolvedValue: (value: null) => void }).mockResolvedValue(null);
 		}
 	});
 
@@ -120,7 +154,7 @@ describe("authRouter", () => {
 					});
 					return { mockUser };
 				},
-				expected: async (result: any, { mockUser }: any) => {
+				expected: async (result: SignInResult, { mockUser }: SetupContext) => {
 					expect(result.success).toBe(true);
 					if (result.success) {
 						expect(result.user).toEqual(mockUser);
@@ -144,12 +178,12 @@ describe("authRouter", () => {
 					resetMockUsers();
 					return {};
 				},
-				expected: async (result: any) => {
+				expected: async (result: SignInResult) => {
 					expect(result.success).toBe(false);
 					expect(result.requiresPasswordChange).toBe(true);
 					if ("challenge" in result) {
-						expect(result.challenge.name).toBe("NEW_PASSWORD_REQUIRED");
-						expect(result.challenge.session).toBeTruthy();
+						expect(result.challenge?.name).toBe("NEW_PASSWORD_REQUIRED");
+						expect(result.challenge?.session).toBeTruthy();
 						expect(result.challenge.username).toBe("newpassword@example.com");
 					}
 					expect(mockSaveSession).not.toHaveBeenCalled();
@@ -212,7 +246,7 @@ describe("authRouter", () => {
 					return {};
 				},
 				shouldThrow: false,
-				expected: async (result: any) => {
+				expected: async (result: SignInResult) => {
 					// 正常にログインできるはず
 					expect(result.success).toBe(true);
 				},
@@ -255,7 +289,7 @@ describe("authRouter", () => {
 				if ("shouldThrow" in testCase && testCase.shouldThrow) {
 					const promise = caller.signIn(testCase.input);
 					await expect(promise).rejects.toThrow();
-					
+
 					if ("expectedError" in testCase && testCase.expectedError) {
 						await expect(promise).rejects.toMatchObject(testCase.expectedError);
 					}
@@ -294,7 +328,7 @@ describe("authRouter", () => {
 					});
 					return { mockUser };
 				},
-				expected: async (result: any, { mockUser }: any) => {
+				expected: async (result: ChangePasswordResult, { mockUser }: SetupContext) => {
 					expect(result.success).toBe(true);
 					expect(result.user).toEqual(mockUser);
 					expect(mockRespondToNewPasswordChallenge).toHaveBeenCalledWith(
@@ -327,7 +361,7 @@ describe("authRouter", () => {
 					});
 					return { mockUser };
 				},
-				expected: async (result: any, { mockUser }: any) => {
+				expected: async (result: ChangePasswordResult, { mockUser }: SetupContext) => {
 					expect(result.success).toBe(true);
 					expect(result.user).toEqual(mockUser);
 					expect(mockRespondToNewPasswordChallenge).toHaveBeenCalledWith(
@@ -358,9 +392,7 @@ describe("authRouter", () => {
 					username: "newpassword@example.com",
 				},
 				setup: () => {
-					mockRespondToNewPasswordChallenge.mockRejectedValue(
-						new Error("NotAuthorizedException"),
-					);
+					mockRespondToNewPasswordChallenge.mockRejectedValue(new Error("NotAuthorizedException"));
 				},
 				shouldThrow: true,
 				expectedError: {
@@ -468,12 +500,12 @@ describe("authRouter", () => {
 						name: "Test User",
 						image: "https://example.com/avatar.jpg",
 					};
-					(auth as any).mockResolvedValue({
+					(auth as MockAuthFunction).mockResolvedValue({
 						user: mockUser,
 					});
 					return { mockUser };
 				},
-				expected: async (result: any, { mockUser }: any) => {
+				expected: async (result: GetSessionResult, { mockUser }: SetupContext) => {
 					expect(result).not.toBeNull();
 					expect(result?.user).toEqual(mockUser);
 				},
@@ -481,10 +513,10 @@ describe("authRouter", () => {
 			{
 				name: "正常系: セッションがない場合（未認証）",
 				setup: () => {
-					(auth as any).mockResolvedValue(null);
+					(auth as MockAuthFunction).mockResolvedValue(null);
 					return {};
 				},
-				expected: async (result: any) => {
+				expected: async (result: GetSessionResult) => {
 					expect(result).toBeNull();
 				},
 			},
@@ -494,9 +526,19 @@ describe("authRouter", () => {
 			it(testCase.name, async () => {
 				// Arrange
 				const setupResult = testCase.setup();
-				const mockUser = "mockUser" in setupResult
-					? (setupResult as { mockUser: { id: string; email: string | null; name: string | null; image: string | null } }).mockUser
-					: null;
+				const mockUser =
+					"mockUser" in setupResult
+						? (
+								setupResult as {
+									mockUser: {
+										id: string;
+										email: string | null;
+										name: string | null;
+										image: string | null;
+									};
+								}
+							).mockUser
+						: null;
 				const caller = createCaller({
 					headers: new Headers(),
 					db,

@@ -1,7 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
-import { refreshTokens } from "../cognito";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ID_TOKEN_COOKIE_KEY } from "~/const/auth";
+import { refreshTokens } from "../cognito";
+
+// refreshTokensの戻り値の型
+type RefreshResult = {
+	accessToken: string;
+	idToken: string;
+	refreshToken?: string;
+};
 
 // token-utilsをモック
 vi.mock("../token-utils", () => ({
@@ -80,7 +86,7 @@ describe("refreshTokens", () => {
 		{
 			name: "正常系: RefreshTokenで新しいトークンを取得",
 			input: "refresh-token-user-123",
-			expected: async (result: any) => {
+			expected: async (result: RefreshResult) => {
 				expect(result).toHaveProperty("accessToken");
 				expect(result).toHaveProperty("idToken");
 				expect(result.accessToken).toBeTruthy();

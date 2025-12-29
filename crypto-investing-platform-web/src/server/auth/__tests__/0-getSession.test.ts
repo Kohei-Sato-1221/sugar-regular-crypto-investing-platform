@@ -1,9 +1,27 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ID_TOKEN_COOKIE_KEY, REFRESH_TOKEN_COOKIE_KEY } from "~/const/auth";
 
+// getSessionの戻り値の型
+type SessionResult = {
+	user: {
+		id: string;
+		email: string | null;
+		name: string | null;
+		image: string | null;
+	};
+} | null;
+
 // vi.hoisted()を使用してモック関数を先に定義
-const { mockGet, mockSet, mockDelete, mockCookieStore, mockDecodeIdToken, mockDecryptToken, mockEncryptToken } = vi.hoisted(() => {
+const {
+	mockGet,
+	mockSet,
+	mockDelete,
+	mockCookieStore,
+	mockDecodeIdToken,
+	mockDecryptToken,
+	mockEncryptToken,
+} = vi.hoisted(() => {
 	const mockGet = vi.fn();
 	const mockSet = vi.fn();
 	const mockDelete = vi.fn();
@@ -21,7 +39,15 @@ const { mockGet, mockSet, mockDelete, mockCookieStore, mockDecodeIdToken, mockDe
 		return null;
 	});
 	const mockEncryptToken = vi.fn((token: string) => `encrypted-${token}`);
-	return { mockGet, mockSet, mockDelete, mockCookieStore, mockDecodeIdToken, mockDecryptToken, mockEncryptToken };
+	return {
+		mockGet,
+		mockSet,
+		mockDelete,
+		mockCookieStore,
+		mockDecodeIdToken,
+		mockDecryptToken,
+		mockEncryptToken,
+	};
 });
 
 vi.mock("next/headers", () => ({
@@ -50,14 +76,14 @@ import { getSession } from "../cognito";
 
 describe("getSession", () => {
 	let refreshTokensSpy: ReturnType<typeof vi.spyOn>;
-	let saveSessionSpy: ReturnType<typeof vi.spyOn>;
-	let clearSessionSpy: ReturnType<typeof vi.spyOn>;
+	let _saveSessionSpy: ReturnType<typeof vi.spyOn>;
+	let _clearSessionSpy: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
 		// すべてのモックとスパイを復元（他のテストファイルで設定されたものも含む）
 		// vi.mock()でモックされたものは復元されない
 		vi.restoreAllMocks();
-		
+
 		vi.clearAllMocks();
 		mockGet.mockClear();
 		mockSet.mockClear();
@@ -75,11 +101,11 @@ describe("getSession", () => {
 		});
 		// mockEncryptTokenのデフォルト実装を復元
 		mockEncryptToken.mockImplementation((token: string) => `encrypted-${token}`);
-		
+
 		// 各テスト前にspyを再設定
 		refreshTokensSpy = vi.spyOn(cognitoModule, "refreshTokens");
-		saveSessionSpy = vi.spyOn(cognitoModule, "saveSession");
-		clearSessionSpy = vi.spyOn(cognitoModule, "clearSession");
+		_saveSessionSpy = vi.spyOn(cognitoModule, "saveSession");
+		_clearSessionSpy = vi.spyOn(cognitoModule, "clearSession");
 	});
 
 	const generateToken = (payload: Record<string, unknown>): string => {
@@ -121,7 +147,7 @@ describe("getSession", () => {
 					return null;
 				});
 			},
-			expected: async (result: any) => {
+			expected: async (result: SessionResult) => {
 				expect(result).not.toBeNull();
 				expect(result?.user.id).toBe("user-123");
 				expect(result?.user.email).toBe("test@example.com");
@@ -136,7 +162,7 @@ describe("getSession", () => {
 			setup: () => {
 				mockGet.mockReturnValue(undefined);
 			},
-			expected: async (result: any) => {
+			expected: async (result: SessionResult) => {
 				expect(result).toBeNull();
 			},
 		},
@@ -153,7 +179,7 @@ describe("getSession", () => {
 				});
 				refreshTokensSpy.mockRejectedValue(new Error("リフレッシュトークンが無効です"));
 			},
-			expected: async (result: any) => {
+			expected: async (result: SessionResult) => {
 				expect(result).toBeNull();
 			},
 		},
@@ -173,7 +199,7 @@ describe("getSession", () => {
 				});
 				mockDecodeIdToken.mockReturnValue(null);
 			},
-			expected: async (result: any) => {
+			expected: async (result: SessionResult) => {
 				expect(result).toBeNull();
 			},
 		},

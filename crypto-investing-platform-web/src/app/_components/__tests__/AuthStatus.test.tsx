@@ -1,11 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Provider } from "jotai";
 import { useHydrateAtoms } from "jotai/utils";
 import type { ReactNode } from "react";
-
-import { AuthStatus } from "../AuthStatus";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userAtom } from "~/store/user";
+import { AuthStatus } from "../AuthStatus";
 
 /**
  * テスト用のJotaiプロバイダー
@@ -110,4 +109,3 @@ describe("AuthStatus", () => {
 		});
 	});
 });
-

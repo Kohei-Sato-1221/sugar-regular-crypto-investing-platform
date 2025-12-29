@@ -73,7 +73,6 @@ export function resetMockUsers() {
  * テスト用のモックCognitoクライアントを作成
  */
 export function createMockCognitoClient() {
-
 	// トークンを生成するヘルパー関数（JWT形式）
 	const generateToken = (user: MockUser): string => {
 		const header = { alg: "HS256", typ: "JWT" };
@@ -91,7 +90,7 @@ export function createMockCognitoClient() {
 	};
 
 	return {
-		send: async (command: any) => {
+		send: async (command: InitiateAuthCommand | RespondToAuthChallengeCommand) => {
 			// InitiateAuthCommandの処理
 			if (command instanceof InitiateAuthCommand) {
 				const { AuthFlow, AuthParameters } = command.input;
@@ -152,9 +151,7 @@ export function createMockCognitoClient() {
 				}
 
 				// ユーザーを検索
-				const user = mockUsers.find(
-					(u) => u.username === username || u.email === username,
-				);
+				const user = mockUsers.find((u) => u.username === username || u.email === username);
 
 				if (!user) {
 					throw {
@@ -183,7 +180,10 @@ export function createMockCognitoClient() {
 				// NEW_PASSWORD_REQUIREDチャレンジの場合
 				if (user.requiresPasswordChange) {
 					const sessionId = `session-${Date.now()}-${Math.random()}`;
-					sessions.set(sessionId, { username: user.username, challengeName: "NEW_PASSWORD_REQUIRED" });
+					sessions.set(sessionId, {
+						username: user.username,
+						challengeName: "NEW_PASSWORD_REQUIRED",
+					});
 					return {
 						ChallengeName: "NEW_PASSWORD_REQUIRED",
 						Session: sessionId,
@@ -207,7 +207,10 @@ export function createMockCognitoClient() {
 			}
 
 			// REFRESH_TOKEN_AUTHフローの処理
-			if (command instanceof InitiateAuthCommand && command.input.AuthFlow === "REFRESH_TOKEN_AUTH") {
+			if (
+				command instanceof InitiateAuthCommand &&
+				command.input.AuthFlow === "REFRESH_TOKEN_AUTH"
+			) {
 				const { AuthParameters } = command.input;
 				const refreshToken = AuthParameters?.REFRESH_TOKEN;
 
@@ -273,9 +276,7 @@ export function createMockCognitoClient() {
 					};
 				}
 
-				const user = mockUsers.find(
-					(u) => u.username === (username ?? session.username),
-				);
+				const user = mockUsers.find((u) => u.username === (username ?? session.username));
 
 				if (!user) {
 					throw {

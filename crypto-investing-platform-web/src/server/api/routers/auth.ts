@@ -1,11 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import {
-	createTRPCRouter,
-	publicProcedure,
-} from "~/server/api/trpc";
-import { signIn, saveSession } from "~/server/auth/cognito";
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { saveSession, signIn } from "~/server/auth/cognito";
 
 export const authRouter = createTRPCRouter({
 	/**
@@ -27,20 +24,21 @@ export const authRouter = createTRPCRouter({
 				if ("challenge" in result && result.challenge) {
 					// ChallengeParametersからUSERNAMEを取得
 					let challengeUsername = input.username;
-					
+
 					if (result.challenge.parameters?.USERNAME) {
 						challengeUsername = result.challenge.parameters.USERNAME;
 					} else if (result.challenge.parameters?.userAttributes) {
 						try {
-							const userAttributes = typeof result.challenge.parameters.userAttributes === "string"
-								? JSON.parse(result.challenge.parameters.userAttributes)
-								: result.challenge.parameters.userAttributes;
-							
+							const userAttributes =
+								typeof result.challenge.parameters.userAttributes === "string"
+									? JSON.parse(result.challenge.parameters.userAttributes)
+									: result.challenge.parameters.userAttributes;
+
 							if (userAttributes?.email) {
 								challengeUsername = userAttributes.email;
 							}
-						} catch (e) {
-							console.error("Failed to parse userAttributes:", e);
+						} catch {
+							// userAttributesのパースに失敗した場合は無視
 						}
 					}
 
@@ -84,8 +82,6 @@ export const authRouter = createTRPCRouter({
 					user: session.user,
 				};
 			} catch (error) {
-				console.error("Sign in error:", error);
-
 				// tRPCエラーの場合はそのまま投げる
 				if (error instanceof TRPCError) {
 					throw error;
@@ -99,19 +95,28 @@ export const authRouter = createTRPCRouter({
 							message: error.message,
 						});
 					}
-					if (error.message.includes("NotAuthorizedException") || error.message.includes("ユーザー名またはパスワードが正しくありません")) {
+					if (
+						error.message.includes("NotAuthorizedException") ||
+						error.message.includes("ユーザー名またはパスワードが正しくありません")
+					) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
 							message: "ユーザー名またはパスワードが正しくありません。",
 						});
 					}
-					if (error.message.includes("UserNotFoundException") || error.message.includes("ユーザーが見つかりません")) {
+					if (
+						error.message.includes("UserNotFoundException") ||
+						error.message.includes("ユーザーが見つかりません")
+					) {
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "ユーザーが見つかりません。",
 						});
 					}
-					if (error.message.includes("UserNotConfirmedException") || error.message.includes("アカウントが確認されていません")) {
+					if (
+						error.message.includes("UserNotConfirmedException") ||
+						error.message.includes("アカウントが確認されていません")
+					) {
 						throw new TRPCError({
 							code: "FORBIDDEN",
 							message: "アカウントが確認されていません。",
@@ -139,8 +144,10 @@ export const authRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			try {
-				const { respondToNewPasswordChallenge, saveSession } = await import("~/server/auth/cognito");
-				
+				const { respondToNewPasswordChallenge, saveSession } = await import(
+					"~/server/auth/cognito"
+				);
+
 				// パスワード変更を実行
 				const tokens = await respondToNewPasswordChallenge(
 					input.session,
@@ -168,8 +175,6 @@ export const authRouter = createTRPCRouter({
 					user: session.user,
 				};
 			} catch (error) {
-				console.error("Change password error:", error);
-
 				if (error instanceof TRPCError) {
 					throw error;
 				}
@@ -212,5 +217,3 @@ export const authRouter = createTRPCRouter({
 		return ctx.session;
 	}),
 });
-
-

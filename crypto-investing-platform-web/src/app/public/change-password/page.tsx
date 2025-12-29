@@ -62,17 +62,18 @@ export default function ChangePasswordPage() {
 			<div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-500 to-purple-600 px-4">
 				<div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
 					<div>
-						<h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+						<h2 className="mt-6 text-center font-bold text-3xl text-gray-900 tracking-tight">
 							エラー
 						</h2>
-						<p className="mt-2 text-center text-sm text-gray-600">
+						<p className="mt-2 text-center text-gray-600 text-sm">
 							セッション情報が無効です。再度ログインしてください。
 						</p>
 					</div>
 					<div>
 						<button
+							className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 font-medium text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 							onClick={() => router.push("/public/signin")}
-							className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+							type="button"
 						>
 							ログイン画面に戻る
 						</button>
@@ -86,10 +87,10 @@ export default function ChangePasswordPage() {
 		<div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-500 to-purple-600 px-4">
 			<div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
 				<div>
-					<h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+					<h2 className="mt-6 text-center font-bold text-3xl text-gray-900 tracking-tight">
 						パスワード変更
 					</h2>
-					<p className="mt-2 text-center text-sm text-gray-600">
+					<p className="mt-2 text-center text-gray-600 text-sm">
 						初回ログインのため、新しいパスワードを設定してください
 					</p>
 				</div>
@@ -97,63 +98,53 @@ export default function ChangePasswordPage() {
 				<form className="mt-8 space-y-6" onSubmit={handleSubmit}>
 					{error && (
 						<div className="rounded-md bg-red-50 p-4">
-							<p className="text-sm font-medium text-red-800">{error}</p>
+							<p className="font-medium text-red-800 text-sm">{error}</p>
 						</div>
 					)}
 
 					<div className="space-y-4">
 						<div>
-							<label
-								htmlFor="newPassword"
-								className="block text-sm font-medium text-gray-700"
-							>
+							<label className="block font-medium text-gray-700 text-sm" htmlFor="newPassword">
 								新しいパスワード
 							</label>
 							<input
-								id="newPassword"
-								name="newPassword"
-								type="password"
 								autoComplete="new-password"
-								required
-								value={formData.newPassword}
-								onChange={(e) =>
-									setFormData({ ...formData, newPassword: e.target.value })
-								}
 								className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-								placeholder="8文字以上"
 								disabled={changePasswordMutation.isPending}
+								id="newPassword"
 								minLength={8}
+								name="newPassword"
+								onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+								placeholder="8文字以上"
+								required
+								type="password"
+								value={formData.newPassword}
 							/>
 						</div>
 
 						<div>
-							<label
-								htmlFor="confirmPassword"
-								className="block text-sm font-medium text-gray-700"
-							>
+							<label className="block font-medium text-gray-700 text-sm" htmlFor="confirmPassword">
 								新しいパスワード（確認）
 							</label>
 							<input
-								id="confirmPassword"
-								name="confirmPassword"
-								type="password"
 								autoComplete="new-password"
-								required
-								value={formData.confirmPassword}
-								onChange={(e) =>
-									setFormData({ ...formData, confirmPassword: e.target.value })
-								}
 								className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-								placeholder="同じパスワードを入力"
 								disabled={changePasswordMutation.isPending}
+								id="confirmPassword"
 								minLength={8}
+								name="confirmPassword"
+								onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+								placeholder="同じパスワードを入力"
+								required
+								type="password"
+								value={formData.confirmPassword}
 							/>
 						</div>
 					</div>
 
-					<div className="text-xs text-gray-500">
+					<div className="text-gray-500 text-xs">
 						<p>パスワード要件:</p>
-						<ul className="list-disc list-inside mt-1 space-y-1">
+						<ul className="mt-1 list-inside list-disc space-y-1">
 							<li>8文字以上</li>
 							<li>大文字、小文字、数字、記号を含むことを推奨</li>
 						</ul>
@@ -161,9 +152,9 @@ export default function ChangePasswordPage() {
 
 					<div>
 						<button
-							type="submit"
+							className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 font-medium text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 							disabled={changePasswordMutation.isPending}
-							className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+							type="submit"
 						>
 							{changePasswordMutation.isPending ? "パスワード変更中..." : "パスワードを変更"}
 						</button>
@@ -173,4 +164,3 @@ export default function ChangePasswordPage() {
 		</div>
 	);
 }
-

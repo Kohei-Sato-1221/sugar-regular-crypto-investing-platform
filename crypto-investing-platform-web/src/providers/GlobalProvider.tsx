@@ -15,11 +15,6 @@ type Props = {
  * Jotaiにユーザー情報をハイドレートする内部コンポーネント
  */
 function HydrateAtoms({ user, children }: Props) {
-	// デバッグログ（開発環境のみ）
-	if (process.env.NODE_ENV === "development") {
-		console.log("[GlobalProvider] Hydrating user:", JSON.stringify(user, null, 2));
-	}
-
 	useHydrateAtoms([[userAtom, user]]);
 	return <>{children}</>;
 }

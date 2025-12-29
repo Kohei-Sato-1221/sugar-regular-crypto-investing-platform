@@ -1,6 +1,6 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 import { env } from "~/env";
 import { appRouter } from "~/server/api/root";
@@ -78,16 +78,15 @@ const handler = async (req: NextRequest) => {
 		onError:
 			env.NODE_ENV === "development"
 				? ({ path, error }) => {
-						console.error(
-							`❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`,
-						);
+						// biome-ignore lint/suspicious/noConsole: 開発時のデバッグ用
+						console.error(`[tRPC Error] ${path}:`, error.message);
 					}
 				: undefined,
 	});
 
 	// レスポンスボディを取得
 	const responseData = await response.text();
-	
+
 	// NextResponseでラップして、Next.jsのcookies()で設定されたCookieを含める
 	// Next.jsのcookies()は内部的にレスポンスヘッダーを管理しているが、
 	// tRPCのfetchRequestHandlerが新しいResponseオブジェクトを作成するため、

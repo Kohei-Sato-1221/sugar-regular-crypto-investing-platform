@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { TodoItem } from "../TodoItem";
-import * as todoActions from "../../actions/todo";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Todo } from "../../actions/todo";
+import * as todoActions from "../../actions/todo";
+import { TodoItem } from "../TodoItem";
 
 // Server Actionsのモック
 vi.mock("../../actions/todo", () => ({
@@ -85,7 +85,7 @@ describe("TodoItem", () => {
 	it("正常系: 処理中はチェックボックスとDeleteボタンが無効化される", async () => {
 		const user = userEvent.setup();
 		const mockToggleTodo = vi.mocked(todoActions.toggleTodo);
-		
+
 		// 非同期処理を遅延させる
 		mockToggleTodo.mockImplementation(
 			() =>
@@ -102,7 +102,7 @@ describe("TodoItem", () => {
 		render(<TodoItem todo={mockTodo} />);
 
 		const checkbox = screen.getByRole("checkbox");
-		const deleteButton = screen.getByRole("button", { name: /Delete/i });
+		const _deleteButton = screen.getByRole("button", { name: /Delete/i });
 
 		await user.click(checkbox);
 
@@ -127,4 +127,3 @@ describe("TodoItem", () => {
 		expect(outerDiv).toHaveClass("opacity-60");
 	});
 });
-

@@ -43,10 +43,10 @@ export async function createTodo(title: string): Promise<Todo> {
 		createdAt: new Date(),
 	};
 	todos.push(newTodo);
-	
+
 	// ページのキャッシュを無効化して再検証
 	revalidatePath("/public");
-	
+
 	return newTodo;
 }
 
@@ -57,18 +57,17 @@ export async function toggleTodo(id: string): Promise<Todo> {
 		throw new Error("Todo not found");
 	}
 	todo.completed = !todo.completed;
-	
+
 	// ページのキャッシュを無効化して再検証
 	revalidatePath("/public");
-	
+
 	return todo;
 }
 
 export async function deleteTodo(id: string): Promise<void> {
 	// サーバー側でTODOを削除
 	todos = todos.filter((t) => t.id !== id);
-	
+
 	// ページのキャッシュを無効化して再検証
 	revalidatePath("/public");
 }
-

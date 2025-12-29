@@ -1,7 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearMockSessions, resetMockUsers } from "../mock-auth";
-import { ID_TOKEN_COOKIE_KEY } from "~/const/auth";
+
+// respondToNewPasswordChallengeの戻り値の型
+type ChallengeResult = {
+	accessToken: string;
+	idToken: string;
+	refreshToken: string;
+};
 
 // vi.hoisted()を使用してモック関数を先に定義
 const { mockGet, mockCookieStore, mockDecodeIdToken, mockDecryptToken } = vi.hoisted(() => {
@@ -73,7 +78,7 @@ describe("respondToNewPasswordChallenge", () => {
 				newPassword: "NewPassword123!",
 				username: "newpassword@example.com",
 			}),
-			expected: async (result: any) => {
+			expected: async (result: ChallengeResult) => {
 				expect(result).toHaveProperty("accessToken");
 				expect(result).toHaveProperty("idToken");
 				expect(result).toHaveProperty("refreshToken");
@@ -114,7 +119,8 @@ describe("respondToNewPasswordChallenge", () => {
 			let input: { session: string; newPassword: string; username?: string };
 			if ("setup" in testCase && testCase.setup) {
 				const setupResult = await testCase.setup();
-				const sessionId = "sessionId" in setupResult && setupResult.sessionId ? setupResult.sessionId : "";
+				const sessionId =
+					"sessionId" in setupResult && setupResult.sessionId ? setupResult.sessionId : "";
 				if (typeof testCase.input === "function") {
 					input = testCase.input(sessionId);
 				} else {

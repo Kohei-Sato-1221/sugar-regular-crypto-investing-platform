@@ -1,10 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-	ID_TOKEN_COOKIE_KEY,
 	ACCESS_TOKEN_COOKIE_KEY,
+	ID_TOKEN_COOKIE_KEY,
 	REFRESH_TOKEN_COOKIE_KEY,
 } from "~/const/auth";
+
+// saveSessionの戻り値の型
+type SaveSessionResult = {
+	user: {
+		id: string;
+		email: string | null;
+		name: string | null;
+		image: string | null;
+	};
+};
 
 // vi.hoisted()を使用してモック関数を先に定義
 const { mockSet, mockCookieStore, mockDecodeIdToken, mockEncryptToken } = vi.hoisted(() => {
@@ -74,7 +84,7 @@ describe("saveSession", () => {
 				idToken: "id-token-user-123",
 				refreshToken: "refresh-token-user-123",
 			},
-			expected: async (result: any) => {
+			expected: async (result: SaveSessionResult) => {
 				expect(result).toHaveProperty("user");
 				expect(result.user.id).toBe("user-123");
 				expect(result.user.email).toBe("test@example.com");
@@ -124,7 +134,7 @@ describe("saveSession", () => {
 				accessToken: "access-token-user-123",
 				idToken: "id-token-user-123",
 			},
-			expected: async (result: any) => {
+			expected: async (result: SaveSessionResult) => {
 				expect(result).toHaveProperty("user");
 				expect(result.user.id).toBe("user-123");
 

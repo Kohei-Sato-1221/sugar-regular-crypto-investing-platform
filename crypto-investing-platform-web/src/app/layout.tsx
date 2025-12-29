@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { GlobalProvider } from "~/providers/GlobalProvider";
-import { TRPCReactProvider } from "~/trpc/react";
 import { auth } from "~/server/auth";
+import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
 	title: "Create T3 App",
@@ -18,9 +18,7 @@ const geist = Geist({
 	variable: "--font-geist-sans",
 });
 
-export default async function RootLayout({
-	children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	// セッションを取得してユーザー情報を作成
 	const session = await auth();
 	const user = session?.user

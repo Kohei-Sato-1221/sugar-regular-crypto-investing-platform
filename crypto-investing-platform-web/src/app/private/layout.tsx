@@ -1,5 +1,3 @@
-export default function PrivateLayout({
-	children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function PrivateLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 	return <>{children}</>;
 }

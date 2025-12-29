@@ -18,13 +18,92 @@
 		}
 	},
 	"formatter": {
-		"enabled": true
+		"enabled": true,
+		"indentStyle": "tab",
+		"indentWidth": 2,
+		"lineWidth": 100
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
+			// 推奨ルールを有効化
 			"recommended": true,
+
+			// コード品質
+			"complexity": {
+				"recommended": true,
+				// 認知的複雑度を制限（認証ロジックなど複雑な関数が多いため、しきい値を高めに設定）
+				"noExcessiveCognitiveComplexity": {
+					"level": "warn",
+					"options": {
+						"maxAllowedComplexity": 60
+					}
+				}
+			},
+
+			// 正確性
+			"correctness": {
+				"recommended": true,
+				// React hooksの依存配列をチェック
+				"useExhaustiveDependencies": "warn",
+				// hooksはトップレベルでのみ呼び出し
+				"useHookAtTopLevel": "error"
+			},
+
+			// セキュリティ
+			"security": {
+				"recommended": true,
+				// dangerouslySetInnerHTMLの使用を警告
+				"noDangerouslySetInnerHtml": "warn"
+			},
+
+			// スタイル
+			"style": {
+				"recommended": true,
+				// Node.jsモジュールはnode:プロトコルを使用
+				"useNodejsImportProtocol": "warn",
+				// constを優先
+				"useConst": "error",
+				// テンプレートリテラルを優先
+				"useTemplate": "warn",
+				// 自己クロージングタグを使用
+				"useSelfClosingElements": "warn"
+			},
+
+			// 疑わしいコード
+			"suspicious": {
+				"recommended": true,
+				// console.logを警告（本番コードでは避ける）
+				"noConsole": "warn",
+				// debuggerを禁止
+				"noDebugger": "error",
+				// 重複したcase文を禁止
+				"noDuplicateCase": "error",
+				// 空のブロックを警告
+				"noEmptyBlockStatements": "warn"
+			},
+
+			// アクセシビリティ
+			"a11y": {
+				"recommended": true,
+				// 画像にalt属性を必須
+				"useAltText": "error",
+				// ボタンにはtype属性を必須
+				"useButtonType": "error",
+				// キーボードイベントにはフォーカス可能な要素を使用
+				"useKeyWithClickEvents": "warn"
+			},
+
+			// パフォーマンス
+			"performance": {
+				"recommended": true,
+				// スプレッド構文の蓄積を避ける（ループ内でのスプレッドはO(n²)になる）
+				"noAccumulatingSpread": "warn"
+			},
+
+			// Nursery（実験的ルール）
 			"nursery": {
+				// Tailwind CSSのクラスをソート
 				"useSortedClasses": {
 					"level": "warn",
 					"fix": "safe",
@@ -45,7 +124,17 @@
 			"enabled": true
 		},
 		"formatter": {
-			"enabled": true
+			"enabled": true,
+			// セミコロンを使用
+			"semicolons": "always",
+			// ダブルクォートを使用
+			"quoteStyle": "double",
+			// JSXでもダブルクォート
+			"jsxQuoteStyle": "double",
+			// 末尾カンマを使用（ES5互換）
+			"trailingCommas": "all",
+			// アロー関数の引数に常に括弧
+			"arrowParentheses": "always"
 		},
 		"linter": {
 			"enabled": true

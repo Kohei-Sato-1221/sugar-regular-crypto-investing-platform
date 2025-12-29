@@ -1,9 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter, useSearchParams } from "next/navigation";
-import ChangePasswordPage from "../page";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "~/trpc/react";
+import ChangePasswordPage from "../page";
+
+// テスト用のモック型定義
+type MockRouter = {
+	push: ReturnType<typeof vi.fn>;
+	replace: ReturnType<typeof vi.fn>;
+	prefetch: ReturnType<typeof vi.fn>;
+	back: ReturnType<typeof vi.fn>;
+	refresh: ReturnType<typeof vi.fn>;
+};
+
+type MockSearchParams = {
+	get: ReturnType<typeof vi.fn>;
+	has: ReturnType<typeof vi.fn>;
+	getAll: ReturnType<typeof vi.fn>;
+};
+
+type MockMutationResult = {
+	mutate: ReturnType<typeof vi.fn>;
+	isPending: boolean;
+};
 
 // Next.js Routerのモック
 const mockPush = vi.fn();
@@ -40,7 +60,7 @@ describe("ChangePasswordPage", () => {
 			prefetch: vi.fn(),
 			back: vi.fn(),
 			refresh: mockRefresh,
-		} as any);
+		} as MockRouter);
 
 		// SearchParamsのモック設定
 		mockGet.mockImplementation((key: string) => {
@@ -53,13 +73,13 @@ describe("ChangePasswordPage", () => {
 			get: mockGet,
 			has: vi.fn(),
 			getAll: vi.fn(),
-		} as any);
+		} as MockSearchParams);
 
 		// tRPCのモック設定
 		vi.mocked(api.auth.changePassword.useMutation).mockReturnValue({
 			mutate: mockMutate,
 			isPending: false,
-		} as any);
+		} as MockMutationResult);
 	});
 
 	it("正常系: フォームが正しくレンダリングされる", () => {
@@ -67,19 +87,17 @@ describe("ChangePasswordPage", () => {
 
 		expect(screen.getByPlaceholderText("8文字以上")).toBeInTheDocument();
 		expect(screen.getByPlaceholderText("同じパスワードを入力")).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: /パスワードを変更/i }),
-		).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /パスワードを変更/i })).toBeInTheDocument();
 	});
 
 	it("正常系: パスワード変更APIが呼ばれる", async () => {
 		const user = userEvent.setup();
 		mockMutate.mockImplementation(() => {
 			// onSuccessが呼ばれることをシミュレート
-			const mutation = vi.mocked(api.auth.changePassword.useMutation).mock
-				.results[0]?.value as any;
-			if (mutation?.onSuccess) {
-				mutation.onSuccess({
+			const mutation = vi.mocked(api.auth.changePassword.useMutation).mock.results[0]
+				?.value as MockMutationResult;
+			if ((mutation as { onSuccess?: (data: unknown) => void })?.onSuccess) {
+				(mutation as { onSuccess?: (data: unknown) => void }).onSuccess?.({
 					success: true,
 					user: { id: "user-123", email: "test@example.com" },
 				});
@@ -87,19 +105,16 @@ describe("ChangePasswordPage", () => {
 		});
 
 		// onSuccessコールバックを設定するためにモックを再設定
-		let onSuccessCallback: ((data: any) => void) | undefined;
+		let _onSuccessCallback: ((data: unknown) => void) | undefined;
 		vi.mocked(api.auth.changePassword.useMutation).mockReturnValue({
 			mutate: mockMutate,
 			isPending: false,
-		} as any);
+		} as MockMutationResult);
 
 		render(<ChangePasswordPage />);
 
 		await user.type(screen.getByPlaceholderText("8文字以上"), "NewPassword123!");
-		await user.type(
-			screen.getByPlaceholderText("同じパスワードを入力"),
-			"NewPassword123!",
-		);
+		await user.type(screen.getByPlaceholderText("同じパスワードを入力"), "NewPassword123!");
 		await user.click(screen.getByRole("button", { name: /パスワードを変更/i }));
 
 		await waitFor(() => {
@@ -113,20 +128,17 @@ describe("ChangePasswordPage", () => {
 
 	it("正常系: パスワード変更成功時にcallbackUrlにリダイレクトする", async () => {
 		const user = userEvent.setup();
-		
+
 		// mockMutateを使用してモックを設定
 		vi.mocked(api.auth.changePassword.useMutation).mockReturnValue({
 			mutate: mockMutate,
 			isPending: false,
-		} as any);
+		} as MockMutationResult);
 
 		render(<ChangePasswordPage />);
 
 		await user.type(screen.getByPlaceholderText("8文字以上"), "NewPassword123!");
-		await user.type(
-			screen.getByPlaceholderText("同じパスワードを入力"),
-			"NewPassword123!",
-		);
+		await user.type(screen.getByPlaceholderText("同じパスワードを入力"), "NewPassword123!");
 		await user.click(screen.getByRole("button", { name: /パスワードを変更/i }));
 
 		// mutateが呼ばれることを確認
@@ -147,10 +159,7 @@ describe("ChangePasswordPage", () => {
 		render(<ChangePasswordPage />);
 
 		await user.type(screen.getByPlaceholderText("8文字以上"), "NewPassword123!");
-		await user.type(
-			screen.getByPlaceholderText("同じパスワードを入力"),
-			"DifferentPassword123!",
-		);
+		await user.type(screen.getByPlaceholderText("同じパスワードを入力"), "DifferentPassword123!");
 		await user.click(screen.getByRole("button", { name: /パスワードを変更/i }));
 
 		await waitFor(() => {
@@ -173,9 +182,7 @@ describe("ChangePasswordPage", () => {
 		await user.click(screen.getByRole("button", { name: /パスワードを変更/i }));
 
 		await waitFor(() => {
-			expect(
-				screen.getByText(/パスワードは8文字以上である必要があります/i),
-			).toBeInTheDocument();
+			expect(screen.getByText(/パスワードは8文字以上である必要があります/i)).toBeInTheDocument();
 		});
 
 		// APIは呼ばれない
@@ -193,9 +200,7 @@ describe("ChangePasswordPage", () => {
 		expect(
 			screen.getByText(/セッション情報が無効です。再度ログインしてください/i),
 		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: /ログイン画面に戻る/i }),
-		).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /ログイン画面に戻る/i })).toBeInTheDocument();
 	});
 
 	it("正常系: セッションが無い場合にログイン画面に戻るボタンをクリックするとログイン画面にリダイレクト", async () => {
@@ -214,20 +219,17 @@ describe("ChangePasswordPage", () => {
 
 	it("異常系: APIエラーが発生した場合はエラーメッセージを表示", async () => {
 		const user = userEvent.setup();
-		
+
 		// mockMutateを使用してモックを設定
 		vi.mocked(api.auth.changePassword.useMutation).mockReturnValue({
 			mutate: mockMutate,
 			isPending: false,
-		} as any);
+		} as MockMutationResult);
 
 		render(<ChangePasswordPage />);
 
 		await user.type(screen.getByPlaceholderText("8文字以上"), "NewPassword123!");
-		await user.type(
-			screen.getByPlaceholderText("同じパスワードを入力"),
-			"NewPassword123!",
-		);
+		await user.type(screen.getByPlaceholderText("同じパスワードを入力"), "NewPassword123!");
 		await user.click(screen.getByRole("button", { name: /パスワードを変更/i }));
 
 		// このテストは実装の詳細（onErrorコールバック）に依存するため、
@@ -250,10 +252,7 @@ describe("ChangePasswordPage", () => {
 		render(<ChangePasswordPage />);
 
 		await user.type(screen.getByPlaceholderText("8文字以上"), "NewPassword123!");
-		await user.type(
-			screen.getByPlaceholderText("同じパスワードを入力"),
-			"NewPassword123!",
-		);
+		await user.type(screen.getByPlaceholderText("同じパスワードを入力"), "NewPassword123!");
 		await user.click(screen.getByRole("button", { name: /パスワードを変更/i }));
 
 		await waitFor(() => {
@@ -280,10 +279,7 @@ describe("ChangePasswordPage", () => {
 		render(<ChangePasswordPage />);
 
 		await user.type(screen.getByPlaceholderText("8文字以上"), "NewPassword123!");
-		await user.type(
-			screen.getByPlaceholderText("同じパスワードを入力"),
-			"NewPassword123!",
-		);
+		await user.type(screen.getByPlaceholderText("同じパスワードを入力"), "NewPassword123!");
 		await user.click(screen.getByRole("button", { name: /パスワードを変更/i }));
 
 		await waitFor(() => {
@@ -291,4 +287,3 @@ describe("ChangePasswordPage", () => {
 		});
 	});
 });
-

@@ -1,6 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { signIn } from "../cognito";
+
+// signInの戻り値の型
+type SignInResult = {
+	accessToken?: string;
+	idToken?: string;
+	refreshToken?: string;
+	challenge?: {
+		name: string;
+		session: string;
+		parameters?: Record<string, unknown>;
+	};
+};
 
 // Next.js cookiesをモック
 vi.mock("next/headers", () => ({
@@ -34,7 +46,7 @@ describe("signIn", () => {
 				username: "test@example.com",
 				password: "password123",
 			},
-			expected: async (result: any) => {
+			expected: async (result: SignInResult) => {
 				expect(result).toHaveProperty("accessToken");
 				expect(result).toHaveProperty("idToken");
 				expect(result).toHaveProperty("refreshToken");
@@ -49,11 +61,11 @@ describe("signIn", () => {
 				username: "newpassword@example.com",
 				password: "oldpassword",
 			},
-			expected: async (result: any) => {
+			expected: async (result: SignInResult) => {
 				expect(result).toHaveProperty("challenge");
-				expect(result.challenge.name).toBe("NEW_PASSWORD_REQUIRED");
-				expect(result.challenge.session).toBeTruthy();
-				expect(result.challenge.parameters).toBeTruthy();
+				expect(result.challenge?.name).toBe("NEW_PASSWORD_REQUIRED");
+				expect(result.challenge?.session).toBeTruthy();
+				expect(result.challenge?.parameters).toBeTruthy();
 			},
 		},
 		{
@@ -111,4 +123,3 @@ describe("signIn", () => {
 		});
 	});
 });
-

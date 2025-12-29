@@ -1,8 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LatestPost } from "../post";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "~/trpc/react";
+import { LatestPost } from "../post";
+
+// useMutationの戻り値の型（テスト用に必要なプロパティのみ）
+type MockMutationResult = {
+	mutate: ReturnType<typeof vi.fn>;
+	isPending: boolean;
+};
 
 // tRPCのモック
 const mockUseSuspenseQuery = vi.fn();
@@ -38,9 +44,7 @@ describe("LatestPost", () => {
 				refetch: vi.fn(),
 			},
 		]);
-		vi.mocked(api.post.getLatest.useSuspenseQuery).mockImplementation(
-			mockUseSuspenseQuery,
-		);
+		vi.mocked(api.post.getLatest.useSuspenseQuery).mockImplementation(mockUseSuspenseQuery);
 
 		// useUtilsのモック設定
 		mockUseUtils.mockReturnValue({
@@ -54,7 +58,7 @@ describe("LatestPost", () => {
 		vi.mocked(api.post.create.useMutation).mockReturnValue({
 			mutate: mockMutate,
 			isPending: false,
-		} as any);
+		} as MockMutationResult);
 	});
 
 	it("正常系: 最新の投稿が表示される", () => {
@@ -83,7 +87,7 @@ describe("LatestPost", () => {
 		vi.mocked(api.post.create.useMutation).mockReturnValue({
 			mutate: mockMutate,
 			isPending: false,
-		} as any);
+		} as MockMutationResult);
 
 		render(<LatestPost />);
 
@@ -103,13 +107,13 @@ describe("LatestPost", () => {
 		vi.mocked(api.post.create.useMutation).mockReturnValue({
 			mutate: mockMutate,
 			isPending: false,
-		} as any);
+		} as MockMutationResult);
 
 		render(<LatestPost />);
 
 		const input = screen.getByPlaceholderText(/Title/i) as HTMLInputElement;
 		await user.type(input, "New Post");
-		
+
 		// 入力値が設定されていることを確認
 		expect(input.value).toBe("New Post");
 
@@ -128,7 +132,7 @@ describe("LatestPost", () => {
 		vi.mocked(api.post.create.useMutation).mockReturnValue({
 			mutate: mockMutate,
 			isPending: true,
-		} as any);
+		} as MockMutationResult);
 
 		render(<LatestPost />);
 
@@ -143,4 +147,3 @@ describe("LatestPost", () => {
 		expect(button).not.toBeDisabled();
 	});
 });
-
